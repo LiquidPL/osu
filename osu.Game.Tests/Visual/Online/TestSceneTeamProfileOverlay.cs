@@ -102,6 +102,7 @@ namespace osu.Game.Tests.Visual.Online
             CreatedAt = new DateTimeOffset(2026, 1, 1, 13, 6, 0, TimeSpan.Zero),
             Description = @"cool team yeah",
             IsOpen = true,
+            Url = "https://example.com",
             EmptySlots = 8,
             Leader = new APIUser
             {
