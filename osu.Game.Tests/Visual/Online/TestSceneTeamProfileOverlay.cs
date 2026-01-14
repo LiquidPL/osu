@@ -102,7 +102,7 @@ namespace osu.Game.Tests.Visual.Online
             CreatedAt = new DateTimeOffset(2026, 1, 1, 13, 6, 0, TimeSpan.Zero),
             Description = @"cool team yeah",
             IsOpen = true,
-            MembersCount = 1,
+            Url = "https://example.com",
             EmptySlots = 8,
             Leader = new APIUser
             {
@@ -110,6 +110,7 @@ namespace osu.Game.Tests.Visual.Online
                 Username = "peppy",
                 CoverUrl = TestResources.COVER_IMAGE_3,
             },
+            Members = [],
             Statistics = new APITeamStatistics
             {
                 Rank = 2,
