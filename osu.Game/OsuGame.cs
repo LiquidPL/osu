@@ -80,6 +80,7 @@ using osu.Game.Screens.Ranking;
 using osu.Game.Screens.Select;
 using osu.Game.Seasonal;
 using osu.Game.Skinning;
+using osu.Game.Teams;
 using osu.Game.Updater;
 using osu.Game.Users;
 using osu.Game.Utils;
@@ -604,6 +605,12 @@ namespace osu.Game
         /// </summary>
         /// <param name="user">The user to display.</param>
         public void ShowUser(IUser user) => waitForReady(() => userProfile, _ => userProfile.ShowUser(user));
+
+        /// <summary>
+        /// Show a team's profile as an overlay.
+        /// </summary>
+        /// <param name="team">The team to display.</param>
+        public void ShowTeam(ITeam team) => waitForReady(() => teamProfileOverlay, _ => teamProfileOverlay.ShowTeam(team));
 
         /// <summary>
         /// Show a beatmap's set as an overlay, displaying the given beatmap.

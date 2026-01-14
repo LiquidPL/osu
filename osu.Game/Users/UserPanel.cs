@@ -156,6 +156,7 @@ namespace osu.Game.Users
         protected Drawable CreateTeamLogo() => new UpdateableTeamFlag(User.Team)
         {
             Size = new Vector2(52, 26),
+            Action = Action,
         };
 
         public MenuItem[] ContextMenuItems

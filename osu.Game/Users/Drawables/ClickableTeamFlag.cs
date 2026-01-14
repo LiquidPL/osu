@@ -1,12 +1,11 @@
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+using System;
 using osu.Framework.Allocation;
 using osu.Framework.Graphics;
 using osu.Game.Graphics.Containers;
-using osu.Game.Online.API;
 using osu.Game.Online.API.Requests.Responses;
-using osu.Game.Online.Chat;
 
 namespace osu.Game.Users.Drawables
 {
@@ -17,8 +16,11 @@ namespace osu.Game.Users.Drawables
         [Resolved]
         private OsuGame? game { get; set; }
 
-        [Resolved]
-        private IAPIProvider api { get; set; } = null!;
+        /// <summary>
+        /// Perform an action in addition to showing the team profile.
+        /// This should be used to perform auxiliary tasks and not as a primary action for clicking a flag (to maintain a consistent UX).
+        /// </summary>
+        public new Action? Action;
 
         /// <summary>
         /// A clickable flag component for the specified team, with UI sounds and a tooltip.
@@ -32,7 +34,11 @@ namespace osu.Game.Users.Drawables
             if (team == null)
                 return;
 
-            Action = openProfile;
+            base.Action = () =>
+            {
+                openProfile();
+                Action?.Invoke();
+            };
 
             if (showTooltipOnHover)
                 TooltipText = team.Name;
@@ -47,10 +53,7 @@ namespace osu.Game.Users.Drawables
         private void openProfile()
         {
             if (team != null)
-                // LinkWarnMode.AlwaysWarn is set to prevent users from being instantly kicked out of the game
-                // on accidental clicks (for example, when selecting a score on song select).
-                // This should be changed when in-game team profile overlay is added.
-                game?.OpenUrlExternally($@"{api.Endpoints.WebsiteUrl}/teams/{team.Id}", LinkWarnMode.AlwaysWarn);
+                game?.ShowTeam(team);
         }
     }
 }
