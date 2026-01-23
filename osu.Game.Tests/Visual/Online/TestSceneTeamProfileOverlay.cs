@@ -6,6 +6,7 @@ using System.Linq;
 using NUnit.Framework;
 using osu.Framework.Graphics;
 using osu.Framework.Testing;
+using osu.Framework.Utils;
 using osu.Game.Graphics.UserInterface;
 using osu.Game.Online.API;
 using osu.Game.Online.API.Requests;
@@ -131,6 +132,24 @@ namespace osu.Game.Tests.Visual.Online
             AddAssert("mania is selected", () => this.ChildrenOfType<TeamRulesetSelector>().First().Current.Value, () => Is.EqualTo(new ManiaRuleset().RulesetInfo));
         }
 
+        public static readonly string[] COVERS =
+        {
+            TestResources.COVER_IMAGE_1,
+            TestResources.COVER_IMAGE_2,
+            TestResources.COVER_IMAGE_3,
+            TestResources.COVER_IMAGE_4,
+        };
+
+        private static APIUser generateUser(int id)
+        {
+            return new APIUser
+            {
+                Id = id,
+                Username = $"user{id}",
+                CoverUrl = COVERS[RNG.Next(0, COVERS.Length)],
+            };
+        }
+
         public static readonly APITeam TEST_TEAM = new APITeam
         {
             Name = "mom?",
@@ -150,7 +169,7 @@ namespace osu.Game.Tests.Visual.Online
                 Username = "peppy",
                 CoverUrl = TestResources.COVER_IMAGE_3,
             },
-            Members = [],
+            Members = (from i in Enumerable.Range(1, 100) select generateUser(i)).ToArray(),
             Statistics = new APITeamStatistics
             {
                 Rank = 2,
