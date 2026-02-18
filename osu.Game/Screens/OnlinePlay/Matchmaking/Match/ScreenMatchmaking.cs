@@ -334,7 +334,7 @@ namespace osu.Game.Screens.OnlinePlay.Matchmaking.Match
             return false;
         }
 
-        public override IReadOnlyList<ScreenFooterButton> CreateFooterButtons() =>
+        protected override IReadOnlyList<ScreenFooterButton> CreateFooterButtons() =>
         [
             new HistoryFooterButton(room)
         ];

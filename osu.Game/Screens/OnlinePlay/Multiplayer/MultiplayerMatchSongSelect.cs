@@ -294,7 +294,7 @@ namespace osu.Game.Screens.OnlinePlay.Multiplayer
             IsValidMod = isValidRequiredMod
         };
 
-        public override IReadOnlyList<ScreenFooterButton> CreateFooterButtons()
+        protected override IReadOnlyList<ScreenFooterButton> CreateFooterButtons()
         {
             var buttons = base.CreateFooterButtons().ToList();
 

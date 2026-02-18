@@ -135,11 +135,11 @@ namespace osu.Game.Tests.Visual.UserInterface
 
             AddStep("show overlay", () => screen.Overlay.Show());
             contentDisplayed();
-            AddAssert("other buttons hidden", () => ScreenFooter.ChildrenOfType<ScreenFooterButton>().Skip(1).All(b => b.Child.Parent!.Y > 0));
+            AddAssert("other buttons hidden", () => ScreenFooter.ChildrenOfType<ScreenFooterButton>().Skip(1).All(b => b.Y > 0));
 
             AddStep("hide overlay", () => screen.Overlay.Hide());
             contentHidden();
-            AddAssert("other buttons returned", () => ScreenFooter.ChildrenOfType<ScreenFooterButton>().Skip(1).All(b => b.ChildrenOfType<Container>().First().Y == 0));
+            AddAssert("other buttons returned", () => ScreenFooter.ChildrenOfType<ScreenFooterButton>().Skip(1).All(b => b.Y == 0));
         }
 
         [Test]
@@ -244,7 +244,7 @@ namespace osu.Game.Tests.Visual.UserInterface
 
             AddStep("show overlay", () => screen.Overlay.Show());
             contentDisplayed();
-            AddAssert("other buttons hidden", () => ScreenFooter.ChildrenOfType<ScreenFooterButton>().Skip(1).All(b => b.Child.Parent!.Y > 0));
+            AddAssert("other buttons hidden", () => ScreenFooter.ChildrenOfType<ScreenFooterButton>().Skip(1).All(b => b.Y > 0));
             AddStep("save overlay content position", () => overlayContentX = ScreenFooter.ChildrenOfType<TestShearedOverlayContainer.TestFooterContent>().First().Parent!.Parent!.X);
 
             AddStep("resize active button", () => ScreenFooter.ChildrenOfType<ScreenFooterButton>().First().ResizeWidthTo(initial_width + width_increase, 300, Easing.OutQuint));
@@ -254,7 +254,7 @@ namespace osu.Game.Tests.Visual.UserInterface
 
             AddStep("hide overlay", () => screen.Overlay.Hide());
             contentHidden();
-            AddUntilStep("other buttons returned", () => ScreenFooter.ChildrenOfType<ScreenFooterButton>().Skip(1).All(b => b.ChildrenOfType<Container>().First().Y == 0));
+            AddUntilStep("other buttons returned", () => ScreenFooter.ChildrenOfType<ScreenFooterButton>().Skip(1).All(b => b.Y == 0));
         }
 
         private void contentHidden()
@@ -303,7 +303,7 @@ namespace osu.Game.Tests.Visual.UserInterface
                 secondOverlayRegistration = overlayManager?.RegisterBlockingOverlay(SecondOverlay);
             }
 
-            public override IReadOnlyList<ScreenFooterButton> CreateFooterButtons() => CreateButtons.Invoke();
+            protected override IReadOnlyList<ScreenFooterButton> CreateFooterButtons() => CreateButtons.Invoke();
 
             protected override void Dispose(bool isDisposing)
             {

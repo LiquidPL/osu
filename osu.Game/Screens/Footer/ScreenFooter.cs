@@ -19,7 +19,7 @@ namespace osu.Game.Screens.Footer
 {
     public partial class ScreenFooter : OverlayContainer
     {
-        public ScreenBackButton BackButton { get; private set; } = null!;
+        public ScreenBackButton BackButton { get; }
 
         /// <summary>
         /// Called when logo tracking begins, intended to bring the osu! logo to the frontmost visually.
@@ -34,16 +34,18 @@ namespace osu.Game.Screens.Footer
         public const int HEIGHT = 50;
 
         private const int padding = 60;
-        private const float delay_per_button = 30;
         private const double transition_duration = 500;
+
+        protected override Container<Drawable> Content => content;
 
         // Disable masking because it breaks due to the height of this container being less than the displayed content.
         // The height being set as it is required for transition purposes.
         public override bool UpdateSubTreeMasking() => false;
 
-        private Box background = null!;
+        private readonly Box background;
+        private readonly Container content;
 
-        private LogoTrackingContainer logoTrackingContainer = null!;
+        private readonly LogoTrackingContainer logoTrackingContainer;
         private IDisposable? logoTracking;
 
         // TODO: This has some weird update logic local in this class, but it only works for overlay containers.
@@ -56,21 +58,16 @@ namespace osu.Game.Screens.Footer
 
         public ScreenFooter(BackReceptor? receptor = null)
         {
+            // This is needed so that the content set by screens gets properly disposed when exiting,
+            // even if the footer isn't visible at the time.
+            AlwaysPresent = true;
+
             RelativeSizeAxes = Axes.X;
             Height = HEIGHT;
             Anchor = Anchor.BottomLeft;
             Origin = Anchor.BottomLeft;
 
-            if (receptor == null)
-                Add(receptor = new BackReceptor());
-
-            receptor.OnBackPressed = () => BackButton.TriggerClick();
-        }
-
-        [BackgroundDependencyLoader]
-        private void load()
-        {
-            InternalChildren = new Drawable[]
+            var internalChildren = new Drawable[]
             {
                 background = new Box
                 {
@@ -83,6 +80,14 @@ namespace osu.Game.Screens.Footer
                     Origin = Anchor.BottomLeft,
                     Action = onBackPressed,
                 },
+                content = new Container
+                {
+                    Name = "Footer content",
+                    RelativeSizeAxes = Axes.Both,
+                    Anchor = Anchor.BottomLeft,
+                    Origin = Anchor.BottomLeft,
+                    Padding = new MarginPadding { Left = OsuGame.SCREEN_EDGE_MARGIN + ScreenBackButton.BUTTON_WIDTH + padding },
+                },
                 (logoTrackingContainer = new LogoTrackingContainer
                 {
                     RelativeSizeAxes = Axes.Both,
@@ -93,6 +98,13 @@ namespace osu.Game.Screens.Footer
                     f.Position = new Vector2(-76, -36);
                 })),
             };
+
+            if (receptor == null)
+                internalChildren = [..internalChildren, receptor = new BackReceptor()];
+
+            InternalChildren = internalChildren;
+
+            receptor.OnBackPressed = () => BackButton.TriggerClick();
         }
 
         protected override void LoadComplete()
@@ -123,7 +135,7 @@ namespace osu.Game.Screens.Footer
 
         protected override void PopIn()
         {
-            // buttonsFlow.FadeIn(transition_duration / 4, Easing.OutQuint);
+            content.FadeIn(transition_duration / 4, Easing.OutQuint);
 
             this.MoveToY(0, transition_duration, Easing.OutQuint)
                 .FadeIn();
@@ -133,7 +145,7 @@ namespace osu.Game.Screens.Footer
         {
             // Really we shouldn't need to do this, but some buttons protrude vertically more than expected
             // (see FooterButtonMods).
-            // buttonsFlow.FadeOut(transition_duration, Easing.OutQuint);
+            content.FadeOut(transition_duration, Easing.OutQuint);
 
             this.MoveToY(ScreenFooterButton.HEIGHT, transition_duration, Easing.OutQuint)
                 .Then()

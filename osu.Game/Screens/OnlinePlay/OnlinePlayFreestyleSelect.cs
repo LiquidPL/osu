@@ -110,7 +110,7 @@ namespace osu.Game.Screens.OnlinePlay
             return true;
         }
 
-        public override IReadOnlyList<ScreenFooterButton> CreateFooterButtons() => [];
+        protected override IReadOnlyList<ScreenFooterButton> CreateFooterButtons() => [];
 
         void IHandlePresentBeatmap.PresentBeatmap(WorkingBeatmap workingBeatmap, RulesetInfo ruleset)
         {
