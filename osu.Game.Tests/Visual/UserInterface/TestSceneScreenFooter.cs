@@ -8,6 +8,7 @@ using NUnit.Framework;
 using osu.Framework.Allocation;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
+using osu.Framework.Graphics.Shapes;
 using osu.Framework.Graphics.Sprites;
 using osu.Framework.Screens;
 using osu.Framework.Testing;
@@ -104,6 +105,37 @@ namespace osu.Game.Tests.Visual.UserInterface
             AddStep("exit screen", () => Stack.Exit());
             AddUntilStep("wait until screen is loaded", () => screen.IsCurrentScreen(), () => Is.True);
             AddAssert("footer shown", () => ScreenFooter.State.Value, () => Is.EqualTo(Visibility.Visible));
+        }
+
+        [Test]
+        public void TestColourUpdateOnScreenChange()
+        {
+            TestScreen screenBlue = null!;
+            TestScreen screenPink = null!;
+
+            AddStep("push blue screen", () => LoadScreen(screenBlue = new TestScreen
+            {
+                CreateButtons = () =>
+                [
+                    new ScreenFooterButton { Text = "Button 1", Action = () => { } },
+                    new ScreenFooterButton { Text = "Button 2", Action = () => { } },
+                    new ScreenFooterButton { Text = "Button 3", Action = () => { } },
+                ],
+            }));
+            AddUntilStep("wait until screen is loaded", () => screenBlue.IsCurrentScreen(), () => Is.True);
+            AddAssert("footer colour is blue", () => ScreenFooter.ChildrenOfType<Box>().First(b => b.Name == "Footer background").Colour.TopLeft.SRGB, () => Is.EqualTo(new OverlayColourProvider(OverlayColourScheme.Blue).Background5));
+
+            AddStep("push pink screen", () => LoadScreen(screenPink = new TestScreen(colourProvider: new OverlayColourProvider(OverlayColourScheme.Pink))
+            {
+                CreateButtons = () =>
+                [
+                    new ScreenFooterButton { Text = "Button 4", Action = () => { } },
+                    new ScreenFooterButton { Text = "Button 5", Action = () => { } },
+                    new ScreenFooterButton { Text = "Button 6", Action = () => { } },
+                ],
+            }));
+            AddUntilStep("wait until screen is loaded", () => screenPink.IsCurrentScreen(), () => Is.True);
+            AddAssert("footer colour is pink", () => ScreenFooter.ChildrenOfType<Box>().First(b => b.Name == "Footer background").Colour.TopLeft.SRGB, () => Is.EqualTo(new OverlayColourProvider(OverlayColourScheme.Pink).Background5));
         }
 
         [Test]
@@ -282,9 +314,9 @@ namespace osu.Game.Tests.Visual.UserInterface
             [Resolved]
             private IOverlayManager? overlayManager { get; set; }
 
-            public TestScreen(bool showFooter = true)
+            public TestScreen(bool showFooter = true, OverlayColourProvider? colourProvider = null)
             {
-                ColourProvider = new OverlayColourProvider(OverlayColourScheme.Blue);
+                ColourProvider = colourProvider ?? new OverlayColourProvider(OverlayColourScheme.Blue);
 
                 ShowFooter = showFooter;
             }
