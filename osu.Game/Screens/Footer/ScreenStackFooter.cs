@@ -83,6 +83,8 @@ namespace osu.Game.Screens.Footer
             if (screen is not OsuScreen osuScreen)
                 return;
 
+            osuScreen.FooterExiting();
+
             backButtonVisibility.UnbindFrom(osuScreen.BackButtonVisibility);
         }
 
@@ -96,6 +98,12 @@ namespace osu.Game.Screens.Footer
                 return;
             }
 
+            if (osuScreen.IsLoaded)
+                osuScreen.FooterArriving();
+            else
+                osuScreen.OnLoadComplete += _ => osuScreen.FooterArriving();
+
+            // TODO: clean this up after footer v1 is nuked
             if (osuScreen.ShowFooter)
             {
                 // the legacy back button should never display while the new footer is in use, as it

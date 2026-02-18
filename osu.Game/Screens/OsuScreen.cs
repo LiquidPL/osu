@@ -5,12 +5,14 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using JetBrains.Annotations;
 using osu.Framework.Allocation;
 using osu.Framework.Audio;
 using osu.Framework.Audio.Sample;
 using osu.Framework.Bindables;
 using osu.Framework.Graphics;
+using osu.Framework.Graphics.Containers;
 using osu.Framework.Screens;
 using osu.Game.Beatmaps;
 using osu.Game.Overlays;
@@ -19,6 +21,7 @@ using osu.Game.Rulesets.Mods;
 using osu.Game.Screens.Footer;
 using osu.Game.Screens.Menu;
 using osu.Game.Users;
+using osuTK;
 
 namespace osu.Game.Screens
 {
@@ -160,10 +163,6 @@ namespace osu.Game.Screens
 
         [Resolved(canBeNull: true)]
         private OsuLogo logo { get; set; }
-
-        [Resolved(canBeNull: true)]
-        [CanBeNull]
-        protected ScreenFooter Footer { get; private set; }
 
         protected OsuScreen()
         {
@@ -317,13 +316,104 @@ namespace osu.Game.Screens
         {
         }
 
+        #region Footer handling
+
+        [Resolved(canBeNull: true)]
+        [CanBeNull]
+        protected ScreenFooter Footer { get; private set; }
+
+        [CanBeNull]
+        private FillFlowContainer<ScreenFooterButton> footerButtonContainer;
+
+        private const int footer_button_animation_delay = 30;
+
+        /// <summary>
+        /// Called when the screen should add its footer content to the footer drawable,
+        /// and animate its arrival.
+        /// </summary>
+        public virtual void FooterArriving()
+        {
+            if (Footer == null)
+                return;
+
+            var footerContent = CreateFooterContent();
+
+            if (footerContent.Count == 0)
+                return;
+
+            LoadComponents(footerContent);
+            Footer.AddRange(footerContent);
+
+            if (footerButtonContainer == null)
+                return;
+
+            foreach ((var button, int i) in footerButtonContainer.Children.Select((b, i) => (b, i)))
+            {
+                // ensure transforms are added after LoadComplete to not be aborted by the FinishTransforms call.
+                button.OnLoadComplete += _ => button.Appear(i * footer_button_animation_delay);
+            }
+        }
+
+        /// <summary>
+        /// Called when the screen should animate the exit of its footer content,
+        /// and remove it from the footer drawable.
+        /// </summary>
+        public virtual void FooterExiting()
+        {
+            if (footerButtonContainer == null)
+                return;
+
+            foreach ((var button, int i) in footerButtonContainer.Children.Select((b, i) => (b, i)))
+            {
+                button.Enabled.Value = false;
+                button.Disappear(i * footer_button_animation_delay, true);
+            }
+
+            double delay = footerButtonContainer.Count > 0
+                ? footerButtonContainer.Max(b => b.LatestTransformEndTime) - Time.Current
+                : 0;
+
+            footerButtonContainer.Delay(delay).FadeOut().Expire();
+        }
+
+        /// <summary>
+        /// Buttons to be added to the game's footer toolbar.
+        /// </summary>
+        protected virtual IReadOnlyList<ScreenFooterButton> CreateFooterButtons() => Array.Empty<ScreenFooterButton>();
+
+        /// <summary>
+        /// The content to be set on the game's footer toolbar.
+        /// </summary>
+        ///
+        /// <remarks>
+        /// Subclasses can override this in order to display additional custom buttons
+        /// on top of the ones defined in <see cref="CreateFooterButtons"/>.
+        /// </remarks>
+        protected virtual IReadOnlyList<Drawable> CreateFooterContent()
+        {
+            return new[]
+            {
+                footerButtonContainer = new FillFlowContainer<ScreenFooterButton>
+                {
+                    Name = "Visible footer buttons",
+                    Anchor = Anchor.BottomLeft,
+                    Origin = Anchor.BottomLeft,
+                    Y = ScreenFooterButton.CORNER_RADIUS,
+                    Direction = FillDirection.Horizontal,
+                    Spacing = new Vector2(7, 0),
+                    AutoSizeAxes = Axes.Both,
+                    Children = CreateFooterButtons(),
+                },
+            };
+        }
+
+        #endregion
+
         /// <summary>
         /// Override to create a BackgroundMode for the current screen.
         /// Note that the instance created may not be the used instance if it matches the BackgroundMode equality clause.
         /// </summary>
         protected virtual BackgroundScreen CreateBackground() => null;
-
-        public virtual IReadOnlyList<ScreenFooterButton> CreateFooterButtons() => Array.Empty<ScreenFooterButton>();
 
         public virtual bool OnBackButton() => false;
     }

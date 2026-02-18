@@ -228,7 +228,7 @@ namespace osu.Game.Screens.Footer
             glowBox.FadeColour(ColourInfo.GradientVertical(buttonAccentColour.Opacity(0f), buttonAccentColour.Opacity(0.2f)), 150, Easing.OutQuint);
         }
 
-        public void AppearFromBottom(double delay)
+        public void Appear(double delay)
         {
             Content.FinishTransforms();
             Content.MoveToY(100f)
@@ -238,7 +238,7 @@ namespace osu.Game.Screens.Footer
                    .FadeIn(240, Easing.OutCubic);
         }
 
-        public void DisappearToBottom(double delay, bool expire)
+        public void Disappear(double delay, bool expire)
         {
             Content.FinishTransforms();
             Content.Delay(delay)
@@ -246,7 +246,7 @@ namespace osu.Game.Screens.Footer
                    .MoveToY(100f, 240, Easing.InOutCubic);
 
             if (expire)
-                this.Delay(Content.LatestTransformEndTime - Time.Current).Expire();
+                this.Delay(Content.LatestTransformEndTime - Time.Current).FadeOut().Expire();
         }
     }
 }

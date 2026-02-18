@@ -231,7 +231,7 @@ namespace osu.Game.Tests.Visual.Multiplayer
                 overlayRegistration = overlayManager?.RegisterBlockingOverlay(Overlay);
             }
 
-            public override IReadOnlyList<ScreenFooterButton> CreateFooterButtons() =>
+            protected override IReadOnlyList<ScreenFooterButton> CreateFooterButtons() =>
             [
                 Button = new FooterButtonFreeModsV2(Overlay)
                 {

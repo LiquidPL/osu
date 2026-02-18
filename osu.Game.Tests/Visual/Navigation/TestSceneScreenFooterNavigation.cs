@@ -279,7 +279,7 @@ namespace osu.Game.Tests.Visual.Navigation
                 overlayRegistration = overlayManager?.RegisterBlockingOverlay(Overlay);
             }
 
-            public override IReadOnlyList<ScreenFooterButton> CreateFooterButtons() => CreateButtons.Invoke();
+            protected override IReadOnlyList<ScreenFooterButton> CreateFooterButtons() => CreateButtons.Invoke();
 
             protected override void Dispose(bool isDisposing)
             {
