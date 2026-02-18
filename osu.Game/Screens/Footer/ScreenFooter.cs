@@ -48,11 +48,15 @@ namespace osu.Game.Screens.Footer
         private readonly LogoTrackingContainer logoTrackingContainer;
         private IDisposable? logoTracking;
 
-        // TODO: This has some weird update logic local in this class, but it only works for overlay containers.
-        // This is not what we want. The footer is to be displayed on *screens* with different colour schemes.
-        // It needs to update on screen switch.
+        // This is being updated on screen change by `OsuScreen` through `UpdateColourScheme(),
+        // however it needs to have a default value for DI to work.
         //
-        // For now it's locked to Blue to match song select (the most prominent usage).
+        // The only* thing that happens to use `OverlayColourProvider` in here is the back button,
+        // so if `ShearedButton` was refactored to not require a colour provider to be injected,
+        // this could be removed altogether.
+        //
+        // *other components pushed to the footer via `Content` are using colour providers from
+        //  their respective screens/overlays.
         [Cached]
         private readonly OverlayColourProvider colourProvider = new OverlayColourProvider(OverlayColourScheme.Blue);
 
@@ -71,6 +75,7 @@ namespace osu.Game.Screens.Footer
             {
                 background = new Box
                 {
+                    Name = "Footer background",
                     RelativeSizeAxes = Axes.Both,
                 },
                 BackButton = new ScreenBackButton
@@ -152,7 +157,7 @@ namespace osu.Game.Screens.Footer
                 .FadeOut();
         }
 
-        private void updateColourScheme(int hue)
+        public void UpdateColourScheme(int hue)
         {
             colourProvider.ChangeColourScheme(hue);
 

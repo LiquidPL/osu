@@ -336,6 +336,9 @@ namespace osu.Game.Screens
             if (Footer == null)
                 return;
 
+            if (ColourProvider != null)
+                Footer.UpdateColourScheme(ColourProvider.Hue);
+
             var footerContent = CreateFooterContent();
 
             if (footerContent.Count == 0)
