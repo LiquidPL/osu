@@ -139,9 +139,6 @@ namespace osu.Game.Overlays.Mods
 
             if (footer != null)
             {
-                activeOverlayRegistration = footer.RegisterActiveOverlayContainer(this, out var footerContent);
-                DisplayedFooterContent = footerContent;
-
                 if (footer.State.Value == Visibility.Hidden)
                 {
                     footer.Show();
