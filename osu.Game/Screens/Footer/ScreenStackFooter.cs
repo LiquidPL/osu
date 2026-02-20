@@ -83,9 +83,12 @@ namespace osu.Game.Screens.Footer
             if (screen is not OsuScreen osuScreen)
                 return;
 
-            osuScreen.FooterExiting();
-
             backButtonVisibility.UnbindFrom(osuScreen.BackButtonVisibility);
+
+            if (osuScreen is IHasSubScreenStack)
+                return;
+
+            osuScreen.FooterExiting();
         }
 
         private void bindScreen(IScreen screen)
@@ -97,11 +100,6 @@ namespace osu.Game.Screens.Footer
                 Footer.Hide();
                 return;
             }
-
-            if (osuScreen.IsLoaded)
-                osuScreen.FooterArriving();
-            else
-                osuScreen.OnLoadComplete += _ => osuScreen.FooterArriving();
 
             // TODO: clean this up after footer v1 is nuked
             if (osuScreen.ShowFooter)
@@ -118,6 +116,23 @@ namespace osu.Game.Screens.Footer
 
                 Footer.Hide();
             }
+
+            // Don't apply footer changes when entering a `IHasSubScreenStack` screen, since there is no
+            // corresponding event for it being exited when its first subscreen is being pushed onto it
+            // (that is, `ScreenPushed` will be invoked with (null, subScreen)).
+            //
+            // Otherwise, the screen would never clean up its own footer content when said subscreen is pushed.
+            //
+            // This shouldn't be an issue for us since screen stack holding screens will generally only
+            // display the topmost screen on its stack, and they won't have their own specific footer.
+            // This is the case for `OnlinePlayScreen`, which is the only such screen right now.
+            if (osuScreen is IHasSubScreenStack)
+                return;
+
+            if (osuScreen.IsLoaded)
+                osuScreen.FooterArriving();
+            else
+                osuScreen.OnLoadComplete += _ => osuScreen.FooterArriving();
         }
 
         protected override void Dispose(bool isDisposing)
