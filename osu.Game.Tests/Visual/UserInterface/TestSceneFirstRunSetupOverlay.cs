@@ -223,8 +223,10 @@ namespace osu.Game.Tests.Visual.UserInterface
             [Resolved]
             private IOverlayManager overlayManager { get; set; }
 
-            [Cached]
-            private OverlayColourProvider colourProvider = new OverlayColourProvider(OverlayColourScheme.Blue);
+            public TestFirstRunSetupOverlayScreen()
+            {
+                ColourProvider = new OverlayColourProvider(OverlayColourScheme.Blue);
+            }
 
             [BackgroundDependencyLoader]
             private void load()
