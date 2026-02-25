@@ -98,6 +98,14 @@ namespace osu.Game.Tests.Visual.UserInterface
             });
         }
 
+        protected override void BackButtonPressed()
+        {
+            if (screen.OnBackButton())
+                return;
+
+            base.BackButtonPressed();
+        }
+
         private void createScreen()
         {
             AddStep("create screen", () => LoadScreen(screen = new TestModSelectOverlayScreen { SelectedMods = { BindTarget = SelectedMods } }));

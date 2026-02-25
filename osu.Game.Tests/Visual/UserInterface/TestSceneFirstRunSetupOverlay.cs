@@ -71,6 +71,14 @@ namespace osu.Game.Tests.Visual.UserInterface
             createScreen();
         }
 
+        protected override void BackButtonPressed()
+        {
+            if (screen.OnBackButton())
+                return;
+
+            base.BackButtonPressed();
+        }
+
         [Test]
         public void TestBasic()
         {
