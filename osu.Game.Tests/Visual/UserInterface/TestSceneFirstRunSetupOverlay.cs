@@ -50,6 +50,14 @@ namespace osu.Game.Tests.Visual.UserInterface
             Dependencies.CacheAs<BeatmapStore>(new TestBeatmapStore());
         }
 
+        protected override void BackButtonPressed()
+        {
+            if (screen.OnBackButton())
+                return;
+
+            base.BackButtonPressed();
+        }
+
         [SetUpSteps]
         public override void SetUpSteps()
         {
@@ -239,6 +247,7 @@ namespace osu.Game.Tests.Visual.UserInterface
             {
                 base.LoadComplete();
                 overlayRegistration = overlayManager?.RegisterBlockingOverlay(Overlay);
+                RegisterShearedOverlay(Overlay);
             }
 
             protected override void Dispose(bool isDisposing)

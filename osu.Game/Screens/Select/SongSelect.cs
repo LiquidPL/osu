@@ -380,6 +380,7 @@ namespace osu.Game.Screens.Select
             base.LoadComplete();
 
             modSelectOverlayRegistration = overlayManager?.RegisterBlockingOverlay(modSelectOverlay);
+            RegisterShearedOverlay(modSelectOverlay);
 
             inputManager = GetContainingInputManager()!;
 

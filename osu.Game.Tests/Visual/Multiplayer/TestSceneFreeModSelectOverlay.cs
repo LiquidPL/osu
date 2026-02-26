@@ -188,6 +188,7 @@ namespace osu.Game.Tests.Visual.Multiplayer
             {
                 base.LoadComplete();
                 overlayRegistration = overlayManager?.RegisterBlockingOverlay(Overlay);
+                RegisterShearedOverlay(Overlay);
             }
 
             protected override IReadOnlyList<ScreenFooterButton> CreateFooterButtons() =>

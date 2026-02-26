@@ -79,6 +79,7 @@ namespace osu.Game.Screens.OnlinePlay.Playlists
             base.LoadComplete();
 
             modSelectOverlayRegistration = overlayManager?.RegisterBlockingOverlay(freeModSelect);
+            RegisterShearedOverlay(freeModSelect);
 
             Mods.BindValueChanged(onGlobalModsChanged);
             Ruleset.BindValueChanged(onRulesetChanged);

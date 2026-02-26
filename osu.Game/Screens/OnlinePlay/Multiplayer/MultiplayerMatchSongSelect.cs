@@ -144,6 +144,7 @@ namespace osu.Game.Screens.OnlinePlay.Multiplayer
             freestyle.BindValueChanged(onFreestyleChanged);
 
             freeModSelectOverlayRegistration = overlayManager?.RegisterBlockingOverlay(freeModSelect);
+            RegisterShearedOverlay(freeModSelect);
 
             updateFooterButtons();
             updateValidMods();

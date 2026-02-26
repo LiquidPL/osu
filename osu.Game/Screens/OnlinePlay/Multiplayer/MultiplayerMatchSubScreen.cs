@@ -428,6 +428,7 @@ namespace osu.Game.Screens.OnlinePlay.Multiplayer
             base.LoadComplete();
 
             userModsSelectOverlayRegistration = overlayManager?.RegisterBlockingOverlay(userModsSelectOverlay);
+            RegisterShearedOverlay(userModsSelectOverlay);
 
             client.RoomUpdated += onRoomUpdated;
             client.SettingsChanged += onSettingsChanged;
