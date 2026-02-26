@@ -55,7 +55,7 @@ namespace osu.Game.Screens.Menu
 
         public override bool HideOverlaysOnEnter => Buttons == null || Buttons.State == ButtonSystemState.Initial;
 
-        public override bool AllowUserExit => false;
+        public override bool AllowUserExit => ActiveOverlay is FirstRunSetupOverlay;
 
         public override bool AllowExternalScreenChange => true;
 
@@ -85,6 +85,9 @@ namespace osu.Game.Screens.Menu
 
         [Resolved(canBeNull: true)]
         private IDialogOverlay dialogOverlay { get; set; }
+
+        [Resolved]
+        private FirstRunSetupOverlay firstRunSetupOverlay { get; set; } = null!;
 
         // used to stop kiai fountain samples when navigating to other screens
         IBindable<bool> ISamplePlaybackDisabler.SamplePlaybackDisabled => samplePlaybackDisabled;
@@ -246,6 +249,7 @@ namespace osu.Game.Screens.Menu
         protected override void LoadComplete()
         {
             base.LoadComplete();
+            RegisterShearedOverlay(firstRunSetupOverlay);
             GetContainingInputManager();
         }
 
