@@ -277,6 +277,7 @@ namespace osu.Game.Tests.Visual.Navigation
             {
                 base.LoadComplete();
                 overlayRegistration = overlayManager?.RegisterBlockingOverlay(Overlay);
+                RegisterShearedOverlay(Overlay);
             }
 
             protected override IReadOnlyList<ScreenFooterButton> CreateFooterButtons() => CreateButtons.Invoke();

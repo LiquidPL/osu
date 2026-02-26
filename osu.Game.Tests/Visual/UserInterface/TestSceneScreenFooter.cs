@@ -333,6 +333,9 @@ namespace osu.Game.Tests.Visual.UserInterface
                 base.LoadComplete();
                 overlayRegistration = overlayManager?.RegisterBlockingOverlay(Overlay);
                 secondOverlayRegistration = overlayManager?.RegisterBlockingOverlay(SecondOverlay);
+
+                RegisterShearedOverlay(Overlay);
+                RegisterShearedOverlay(SecondOverlay);
             }
 
             protected override IReadOnlyList<ScreenFooterButton> CreateFooterButtons() => CreateButtons.Invoke();

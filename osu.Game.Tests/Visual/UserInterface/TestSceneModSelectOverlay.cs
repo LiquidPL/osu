@@ -1075,6 +1075,7 @@ namespace osu.Game.Tests.Visual.UserInterface
                 base.LoadComplete();
 
                 firstOverlayRegistration = OverlayManager?.RegisterBlockingOverlay(Overlay);
+                RegisterShearedOverlay(Overlay);
             }
 
             protected override void Dispose(bool isDisposing)
@@ -1108,6 +1109,7 @@ namespace osu.Game.Tests.Visual.UserInterface
                 base.LoadComplete();
 
                 secondOverlayRegistration = OverlayManager?.RegisterBlockingOverlay(SecondOverlay);
+                RegisterShearedOverlay(SecondOverlay);
             }
 
             protected override void Dispose(bool isDisposing)

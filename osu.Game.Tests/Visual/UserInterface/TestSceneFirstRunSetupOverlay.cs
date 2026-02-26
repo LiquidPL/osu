@@ -246,6 +246,7 @@ namespace osu.Game.Tests.Visual.UserInterface
             {
                 base.LoadComplete();
                 overlayRegistration = overlayManager?.RegisterBlockingOverlay(Overlay);
+                RegisterShearedOverlay(Overlay);
             }
 
             protected override void Dispose(bool isDisposing)

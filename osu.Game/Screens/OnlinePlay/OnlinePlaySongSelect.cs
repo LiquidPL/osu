@@ -120,6 +120,7 @@ namespace osu.Game.Screens.OnlinePlay
             Freestyle.BindValueChanged(onFreestyleChanged);
 
             freeModSelectOverlayRegistration = OverlayManager?.RegisterBlockingOverlay(freeModSelect);
+            RegisterShearedOverlay(freeModSelect);
 
             updateFooterButtons();
             updateValidMods();
