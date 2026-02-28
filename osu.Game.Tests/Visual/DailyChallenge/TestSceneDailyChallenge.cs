@@ -13,8 +13,10 @@ using osu.Game.Online.API;
 using osu.Game.Online.Metadata;
 using osu.Game.Online.Rooms;
 using osu.Game.Overlays;
+using osu.Game.Overlays.Mods;
 using osu.Game.Overlays.Notifications;
 using osu.Game.Rulesets.Osu.Mods;
+using osu.Game.Screens.OnlinePlay.Match;
 using osu.Game.Screens.SelectV2;
 using osu.Game.Tests.Resources;
 using osu.Game.Tests.Visual.Metadata;
@@ -25,6 +27,8 @@ namespace osu.Game.Tests.Visual.DailyChallenge
 {
     public partial class TestSceneDailyChallenge : OnlinePlayTestScene
     {
+        private Screens.OnlinePlay.DailyChallenge.DailyChallenge screen = null!;
+
         [Cached(typeof(MetadataClient))]
         private TestMetadataClient metadataClient = new TestMetadataClient();
 
@@ -38,8 +42,85 @@ namespace osu.Game.Tests.Visual.DailyChallenge
             base.Content.Add(metadataClient);
         }
 
+        protected override void BackButtonPressed()
+        {
+            if (screen.OnBackButton())
+                return;
+
+            base.BackButtonPressed();
+        }
+
         [Test]
         public void TestDailyChallenge()
+        {
+            var room = new Room
+            {
+                Name = "Daily Challenge: June 4, 2024",
+                Playlist =
+                [
+                    new PlaylistItem(TestResources.CreateTestBeatmapSetInfo().Beatmaps.First())
+                    {
+                        AllowedMods = [new APIMod(new OsuModDoubleTime()), new APIMod(new OsuModHardRock())]
+                    }
+                ],
+                EndDate = DateTimeOffset.Now.AddHours(12),
+                Category = RoomCategory.DailyChallenge
+            };
+
+            AddStep("add room", () => API.Perform(new CreateRoomRequest(room)));
+            AddStep("push screen", () => LoadScreen(screen = new Screens.OnlinePlay.DailyChallenge.DailyChallenge(room)));
+            AddUntilStep("wait for load", () => screen.IsLoaded, () => Is.True);
+        }
+
+        [Test]
+        public void TestRequiredMods()
+        {
+            var room = new Room
+            {
+                Name = "Daily Challenge: June 4, 2024",
+                Playlist =
+                [
+                    new PlaylistItem(TestResources.CreateTestBeatmapSetInfo().Beatmaps.First())
+                    {
+                        RequiredMods = [new APIMod(new OsuModTraceable())],
+                        AllowedMods = [new APIMod(new OsuModDoubleTime()), new APIMod(new OsuModHardRock())]
+                    }
+                ],
+                EndDate = DateTimeOffset.Now.AddHours(12),
+                Category = RoomCategory.DailyChallenge
+            };
+            AddStep("add room", () => API.Perform(new CreateRoomRequest(room)));
+            AddStep("push screen", () => LoadScreen(screen = new Screens.OnlinePlay.DailyChallenge.DailyChallenge(room)));
+            AddUntilStep("wait for load", () => screen.IsLoaded, () => Is.True);
+        }
+
+        [Test]
+        public void TestModsButtonDisabledIfNoFreeMods()
+        {
+            var room = new Room
+            {
+                Name = "Daily Challenge: June 4, 2024",
+                Playlist =
+                [
+                    new PlaylistItem(TestResources.CreateTestBeatmapSetInfo().Beatmaps.First())
+                    {
+                        Freestyle = false,
+                        AllowedMods = Array.Empty<APIMod>(),
+                    },
+                ],
+                EndDate = DateTimeOffset.Now.AddHours(12),
+                Category = RoomCategory.DailyChallenge
+            };
+            AddStep("add room", () => API.Perform(new CreateRoomRequest(room)));
+
+            AddStep("push screen", () => LoadScreen(screen = new Screens.OnlinePlay.DailyChallenge.DailyChallenge(room)));
+            AddUntilStep("wait for pushed", () => screen.IsCurrentScreen());
+
+            AddAssert("mods button is disabled", () => this.ChildrenOfType<FooterButtonMods>().Single().Enabled.Value, () => Is.False);
+        }
+
+        [Test]
+        public void TestModsButtonDeselectOnlyClearsUserMods()
         {
             var room = new Room
             {
@@ -57,7 +138,34 @@ namespace osu.Game.Tests.Visual.DailyChallenge
             };
 
             AddStep("add room", () => API.Perform(new CreateRoomRequest(room)));
-            AddStep("push screen", () => LoadScreen(new Screens.OnlinePlay.DailyChallenge.DailyChallenge(room)));
+
+            AddStep("push screen", () => LoadScreen(screen = new Screens.OnlinePlay.DailyChallenge.DailyChallenge(room)));
+            AddUntilStep("wait for pushed", () => screen.IsCurrentScreen());
+
+            AddStep("show mod overlay", () =>
+            {
+                InputManager.MoveMouseTo(this.ChildrenOfType<FooterButtonMods>().First());
+                InputManager.Click(MouseButton.Left);
+            });
+            AddUntilStep("mod overlay shown", () => this.ChildrenOfType<RoomModSelectOverlay>().SingleOrDefault()?.IsPresent, () => Is.True);
+
+            AddStep("select mod", () =>
+            {
+                InputManager.MoveMouseTo(this.ChildrenOfType<IncompatibilityDisplayingModPanel>().First(panel => panel.Mod.Acronym == "DT"));
+                InputManager.Click(MouseButton.Left);
+            });
+            AddUntilStep("wait for mod to be applied", () => SelectedMods.Value, () => Has.Some.EqualTo(new OsuModDoubleTime()));
+
+            AddStep("close mod overlay", () => InputManager.Key(Key.Escape));
+            AddUntilStep("mod overlay not shown", () => this.ChildrenOfType<RoomModSelectOverlay>().SingleOrDefault()?.IsPresent, () => Is.False);
+
+            AddStep("clear mods", () =>
+            {
+                InputManager.MoveMouseTo(this.ChildrenOfType<FooterButtonMods>().First());
+                InputManager.Click(MouseButton.Right);
+            });
+            AddUntilStep("DT is not enabled", () => SelectedMods.Value, () => Has.None.EqualTo(new OsuModDoubleTime()));
+            AddAssert("TC is enabled", () => SelectedMods.Value, () => Has.Some.EqualTo(new OsuModTraceable()));
         }
 
         [Test]
@@ -79,7 +187,6 @@ namespace osu.Game.Tests.Visual.DailyChallenge
             };
 
             AddStep("add room", () => API.Perform(new CreateRoomRequest(room)));
-            Screens.OnlinePlay.DailyChallenge.DailyChallenge screen = null!;
             AddStep("push screen", () => LoadScreen(screen = new Screens.OnlinePlay.DailyChallenge.DailyChallenge(room)));
             AddUntilStep("wait for pushed", () => screen.IsCurrentScreen());
             AddStep("force transforms to finish", () => FinishTransforms(true));
@@ -113,7 +220,6 @@ namespace osu.Game.Tests.Visual.DailyChallenge
             AddStep("add room", () => API.Perform(new CreateRoomRequest(room)));
             AddStep("set daily challenge info", () => metadataClient.DailyChallengeInfo.Value = new DailyChallengeInfo { RoomID = room.RoomID!.Value });
 
-            Screens.OnlinePlay.DailyChallenge.DailyChallenge screen = null!;
             AddStep("push screen", () => LoadScreen(screen = new Screens.OnlinePlay.DailyChallenge.DailyChallenge(room)));
             AddUntilStep("wait for screen", () => screen.IsCurrentScreen());
             AddStep("daily challenge ended", () => metadataClient.DailyChallengeInfo.Value = null);
@@ -141,7 +247,6 @@ namespace osu.Game.Tests.Visual.DailyChallenge
             AddStep("add room", () => API.Perform(new CreateRoomRequest(room)));
             AddStep("set daily challenge info", () => metadataClient.DailyChallengeInfo.Value = new DailyChallengeInfo { RoomID = room.RoomID!.Value });
 
-            Screens.OnlinePlay.DailyChallenge.DailyChallenge screen = null!;
             AddStep("push screen", () => LoadScreen(screen = new Screens.OnlinePlay.DailyChallenge.DailyChallenge(room)));
             AddUntilStep("wait for screen", () => screen.IsCurrentScreen());
             AddStep("disconnect from metadata server", () => metadataClient.Disconnect());
