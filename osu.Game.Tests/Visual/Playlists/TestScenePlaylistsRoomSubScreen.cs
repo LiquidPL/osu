@@ -19,6 +19,7 @@ using osu.Framework.Testing;
 using osu.Game.Beatmaps;
 using osu.Game.Database;
 using osu.Game.Online.API;
+using osu.Game.Online.API.Requests.Responses;
 using osu.Game.Online.Rooms;
 using osu.Game.Rulesets;
 using osu.Game.Rulesets.Catch;
@@ -43,6 +44,8 @@ namespace osu.Game.Tests.Visual.Playlists
         private RulesetStore rulesets = null!;
         private BeatmapManager beatmaps = null!;
         private BeatmapSetInfo importedSet = null!;
+
+        private TestPlaylistsRoomSubScreen screen = null!;
 
         [BackgroundDependencyLoader]
         private void load(GameHost host, AudioManager audio)
@@ -77,6 +80,7 @@ namespace osu.Game.Tests.Visual.Playlists
                             Title = "Some Song",
                             Author = { Username = "Some Guy" },
                         },
+                        Length = 120000,
                     },
                     new BeatmapInfo
                     {
@@ -92,6 +96,7 @@ namespace osu.Game.Tests.Visual.Playlists
                             Title = "Some Song",
                             Author = { Username = "Some Guy" },
                         },
+                        Length = 120000,
                     },
                     new BeatmapInfo
                     {
@@ -107,6 +112,7 @@ namespace osu.Game.Tests.Visual.Playlists
                             Title = "Some Song",
                             Author = { Username = "Some Guy" },
                         },
+                        Length = 120000,
                     },
                     new BeatmapInfo
                     {
@@ -122,9 +128,18 @@ namespace osu.Game.Tests.Visual.Playlists
                             Title = "Some Song",
                             Author = { Username = "Some Guy" },
                         },
+                        Length = 120000,
                     }
                 }
             })!.PerformRead(s => s.Detach());
+        }
+
+        protected override void BackButtonPressed()
+        {
+            if (screen.OnBackButton())
+                return;
+
+            base.BackButtonPressed();
         }
 
         /// <summary>
@@ -160,7 +175,6 @@ namespace osu.Game.Tests.Visual.Playlists
                 API.Perform(new CreateRoomRequest(room));
             });
 
-            TestPlaylistsRoomSubScreen screen = null!;
             AddStep("load screen", () => LoadScreen(new TestPlaylistsScreen(screen = new TestPlaylistsRoomSubScreen(room))));
             AddUntilStep("wait for load", () => screen.IsLoaded);
 
@@ -204,7 +218,6 @@ namespace osu.Game.Tests.Visual.Playlists
                 API.Perform(new CreateRoomRequest(room));
             });
 
-            TestPlaylistsRoomSubScreen screen = null!;
             AddStep("load screen", () => LoadScreen(new TestPlaylistsScreen(screen = new TestPlaylistsRoomSubScreen(room))));
             AddUntilStep("wait for load", () => screen.IsLoaded);
 
@@ -241,7 +254,7 @@ namespace osu.Game.Tests.Visual.Playlists
 
             TestPlaylistsScreen playlistsScreen = null!;
 
-            AddStep("load screen", () => LoadScreen(playlistsScreen = new TestPlaylistsScreen(new TestPlaylistsRoomSubScreen(room))));
+            AddStep("load screen", () => LoadScreen(playlistsScreen = new TestPlaylistsScreen(screen = new TestPlaylistsRoomSubScreen(room))));
             AddUntilStep("wait for playlist room screen", () => playlistsScreen.Stack.CurrentScreen is PlaylistsRoomSubScreen roomSubScreen && roomSubScreen.IsLoaded);
 
             AddUntilStep("original beatmap", () => Beatmap.Value.BeatmapInfo.Equals(importedSet.Beatmaps[0]));
@@ -280,7 +293,7 @@ namespace osu.Game.Tests.Visual.Playlists
 
             TestPlaylistsScreen playlistsScreen = null!;
 
-            AddStep("load screen", () => LoadScreen(playlistsScreen = new TestPlaylistsScreen(new TestPlaylistsRoomSubScreen(room))));
+            AddStep("load screen", () => LoadScreen(playlistsScreen = new TestPlaylistsScreen(screen = new TestPlaylistsRoomSubScreen(room))));
             AddUntilStep("wait for playlist room screen", () => playlistsScreen.Stack.CurrentScreen is PlaylistsRoomSubScreen roomSubScreen && roomSubScreen.IsLoaded);
 
             AddUntilStep("original beatmap", () => Beatmap.Value.BeatmapInfo.Equals(importedSet.Beatmaps[0]));
@@ -326,7 +339,6 @@ namespace osu.Game.Tests.Visual.Playlists
                 API.Perform(new CreateRoomRequest(room));
             });
 
-            TestPlaylistsRoomSubScreen screen = null!;
             AddStep("load screen", () => LoadScreen(new TestPlaylistsScreen(screen = new TestPlaylistsRoomSubScreen(room))));
             AddUntilStep("wait for load", () => screen.IsLoaded);
 
@@ -369,7 +381,6 @@ namespace osu.Game.Tests.Visual.Playlists
                 API.Perform(new CreateRoomRequest(room));
             });
 
-            TestPlaylistsRoomSubScreen screen = null!;
             AddStep("load screen", () => LoadScreen(new TestPlaylistsScreen(screen = new TestPlaylistsRoomSubScreen(room))));
             AddUntilStep("wait for load", () => screen.IsLoaded);
 
@@ -413,7 +424,6 @@ namespace osu.Game.Tests.Visual.Playlists
                 API.Perform(new CreateRoomRequest(room));
             });
 
-            TestPlaylistsRoomSubScreen screen = null!;
             AddStep("load screen", () => LoadScreen(new TestPlaylistsScreen(screen = new TestPlaylistsRoomSubScreen(room))));
             AddUntilStep("wait for load", () => screen.IsLoaded);
 
@@ -459,7 +469,6 @@ namespace osu.Game.Tests.Visual.Playlists
                 API.Perform(new CreateRoomRequest(room));
             });
 
-            TestPlaylistsRoomSubScreen screen = null!;
             AddStep("load screen", () => LoadScreen(new TestPlaylistsScreen(screen = new TestPlaylistsRoomSubScreen(room))));
             AddUntilStep("wait for load", () => screen.IsLoaded);
 
@@ -503,7 +512,6 @@ namespace osu.Game.Tests.Visual.Playlists
                 API.Perform(new CreateRoomRequest(room));
             });
 
-            TestPlaylistsRoomSubScreen screen = null!;
             AddStep("load screen", () => LoadScreen(new TestPlaylistsScreen(screen = new TestPlaylistsRoomSubScreen(room))));
             AddUntilStep("wait for load", () => screen.IsLoaded);
 
@@ -551,7 +559,6 @@ namespace osu.Game.Tests.Visual.Playlists
                 API.Perform(new CreateRoomRequest(room));
             });
 
-            TestPlaylistsRoomSubScreen screen = null!;
             AddStep("load screen", () => LoadScreen(new TestPlaylistsScreen(screen = new TestPlaylistsRoomSubScreen(room))));
             AddUntilStep("wait for load", () => screen.IsLoaded);
 
@@ -591,7 +598,6 @@ namespace osu.Game.Tests.Visual.Playlists
                 API.Perform(new CreateRoomRequest(room));
             });
 
-            TestPlaylistsRoomSubScreen screen = null!;
             AddStep("load screen", () => LoadScreen(new TestPlaylistsScreen(screen = new TestPlaylistsRoomSubScreen(room))));
             AddUntilStep("wait for load", () => screen.IsLoaded);
 
@@ -636,7 +642,6 @@ namespace osu.Game.Tests.Visual.Playlists
                 API.Perform(new CreateRoomRequest(room));
             });
 
-            TestPlaylistsRoomSubScreen screen = null!;
             AddStep("load screen", () => LoadScreen(new TestPlaylistsScreen(screen = new TestPlaylistsRoomSubScreen(room))));
             AddUntilStep("wait for load", () => screen.IsLoaded);
 
@@ -661,6 +666,219 @@ namespace osu.Game.Tests.Visual.Playlists
             AddUntilStep("mods set", () => SelectedMods.Value.Count == 1 && SelectedMods.Value.OfType<OsuModDoubleTime>().Any());
         }
 
+        [Test]
+        public void TestCloseButtonNotPresentPastGracePeriod()
+        {
+            Room room = null!;
+
+            AddStep("add room", () =>
+            {
+                room = new Room
+                {
+                    RoomID = 1,
+                    StartDate = DateTimeOffset.Now.AddMinutes(-10),
+                    Playlist =
+                    [
+                        new PlaylistItem(importedSet.Beatmaps[0])
+                        {
+                            RulesetID = new OsuRuleset().RulesetInfo.OnlineID,
+                            Freestyle = true
+                        },
+                    ]
+                };
+
+                API.Perform(new CreateRoomRequest(room));
+            });
+
+            AddStep("load screen", () => LoadScreen(new TestPlaylistsScreen(screen = new TestPlaylistsRoomSubScreen(room))));
+            AddUntilStep("wait for load", () => screen.IsLoaded);
+            AddAssert("close button is not present", () => ScreenFooter.ChildrenOfType<PlaylistsCloseButton>().Any(), () => Is.False);
+        }
+
+        [Test]
+        public void TestCloseButtonDisappearsWhenGracePeriodEnds()
+        {
+            Room room = null!;
+
+            AddStep("add room", () =>
+            {
+                room = new Room
+                {
+                    RoomID = 1,
+                    StartDate = DateTimeOffset.Now.AddMinutes(-4.95), // 3 seconds before grace period ends
+                    Playlist =
+                    [
+                        new PlaylistItem(importedSet.Beatmaps[0])
+                        {
+                            RulesetID = new OsuRuleset().RulesetInfo.OnlineID,
+                            Freestyle = true
+                        },
+                    ]
+                };
+
+                API.Perform(new CreateRoomRequest(room));
+            });
+
+            AddStep("load screen", () => LoadScreen(new TestPlaylistsScreen(screen = new TestPlaylistsRoomSubScreen(room))));
+            AddUntilStep("wait for load", () => screen.IsLoaded);
+
+            AddAssert("close button is present", () => ScreenFooter.ChildrenOfType<PlaylistsCloseButton>().Single().IsPresent, () => Is.True);
+            AddUntilStep("close button is not present", () => ScreenFooter.ChildrenOfType<PlaylistsCloseButton>().Any(), () => Is.False);
+        }
+
+        [Test]
+        public void TestCloseButtonNotPresentForNonHost()
+        {
+            Room room = null!;
+
+            AddStep("add room", () =>
+            {
+                room = new Room
+                {
+                    RoomID = 1,
+                    Host = new APIUser { Id = 1234 },
+                    Playlist =
+                    [
+                        new PlaylistItem(importedSet.Beatmaps[0])
+                        {
+                            RulesetID = new OsuRuleset().RulesetInfo.OnlineID,
+                            Freestyle = true
+                        },
+                    ]
+                };
+
+                API.Perform(new CreateRoomRequest(room));
+            });
+
+            AddStep("change user", () => ((DummyAPIAccess)API).LocalUser.Value = new APIUser { Username = "Test user", Id = 1234 });
+
+            AddStep("load screen", () => LoadScreen(new TestPlaylistsScreen(screen = new TestPlaylistsRoomSubScreen(room))));
+            AddUntilStep("wait for load", () => screen.IsLoaded);
+
+            AddAssert("close button is not present", () => ScreenFooter.ChildrenOfType<PlaylistsCloseButton>().Any(), () => Is.False);
+        }
+
+        [TestCase(-300)]
+        [TestCase(150)]
+        [TestCase(153)]
+        public void TestPlayButtonDisabledWhenRoomIsClosed(double timeDelta)
+        {
+            Room room = null!;
+
+            AddStep("add room", () =>
+            {
+                room = new Room
+                {
+                    RoomID = 1,
+                    EndDate = DateTimeOffset.Now.AddSeconds(timeDelta),
+                    Playlist =
+                    [
+                        new PlaylistItem(importedSet.Beatmaps[0])
+                        {
+                            RulesetID = new OsuRuleset().RulesetInfo.OnlineID,
+                            Freestyle = true
+                        },
+                    ]
+                };
+
+                API.Perform(new CreateRoomRequest(room));
+            });
+
+            AddStep("load screen", () => LoadScreen(new TestPlaylistsScreen(screen = new TestPlaylistsRoomSubScreen(room))));
+            AddUntilStep("wait for load", () => screen.IsLoaded);
+
+            AddUntilStep("play button is disabled", () => ScreenFooter.ChildrenOfType<PlaylistsPlayButton>().Single().Enabled.Value, () => Is.False);
+            AddAssert("play button has tooltip", () => ScreenFooter.ChildrenOfType<PlaylistsPlayButton>().Single().TooltipText.ToString(), () => Is.EqualTo("No time left!"));
+        }
+
+        [Test]
+        public void TestPlayButtonDisabledWhenNoAttemptsLeft()
+        {
+            Room room = null!;
+
+            AddStep("add room", () =>
+            {
+                room = new Room
+                {
+                    RoomID = 1,
+                    EndDate = DateTimeOffset.Now.AddMinutes(30),
+                    MaxAttempts = 2,
+                    Playlist =
+                    [
+                        new PlaylistItem(importedSet.Beatmaps[0])
+                        {
+                            RulesetID = new OsuRuleset().RulesetInfo.OnlineID,
+                            Freestyle = true
+                        },
+                    ],
+                    UserScore = new PlaylistAggregateScore
+                    {
+                        PlaylistItemAttempts = [new ItemAttemptsCount { PlaylistItemID = 1, Attempts = 2, Passed = true }],
+                    },
+                };
+
+                API.Perform(new CreateRoomRequest(room));
+            });
+
+            AddStep("load screen", () => LoadScreen(new TestPlaylistsScreen(screen = new TestPlaylistsRoomSubScreen(room))));
+            AddUntilStep("wait for load", () => screen.IsLoaded);
+
+            AddUntilStep("play button is disabled", () => ScreenFooter.ChildrenOfType<PlaylistsPlayButton>().Single().Enabled.Value, () => Is.False);
+            AddAssert("play button has tooltip", () => ScreenFooter.ChildrenOfType<PlaylistsPlayButton>().Single().TooltipText.ToString(), () => Is.EqualTo("Attempts exhausted!"));
+        }
+
+        [Test]
+        public void TestPlayButtonDisabledWhenBeatmapNotDownloaded()
+        {
+            Room room = null!;
+
+            AddStep("add room", () =>
+            {
+                room = new Room
+                {
+                    RoomID = 1,
+                    EndDate = DateTimeOffset.Now.AddMinutes(30),
+                    Playlist =
+                    [
+                        new PlaylistItem(importedSet.Beatmaps[0])
+                        {
+                            RulesetID = new OsuRuleset().RulesetInfo.OnlineID,
+                            Freestyle = true
+                        },
+                        new PlaylistItem(new BeatmapInfo
+                        {
+                            OnlineID = 100,
+                            DifficultyName = "Not downloaded",
+                            Hash = Guid.NewGuid().ToString().ComputeMD5Hash(),
+                            MD5Hash = "44444444",
+                            OnlineMD5Hash = "44444444",
+                            Ruleset = new OsuRuleset().RulesetInfo,
+                            Metadata =
+                            {
+                                Artist = "Some Artist",
+                                Title = "Some Song",
+                                Author = { Username = "Some Guy" },
+                            },
+                        })
+                        {
+                            RulesetID = new OsuRuleset().RulesetInfo.OnlineID,
+                            Freestyle = true
+                        },
+                    ]
+                };
+
+                API.Perform(new CreateRoomRequest(room));
+            });
+
+            AddStep("load screen", () => LoadScreen(new TestPlaylistsScreen(screen = new TestPlaylistsRoomSubScreen(room))));
+            AddUntilStep("wait for load", () => screen.IsLoaded);
+
+            AddUntilStep("play button is enabled", () => ScreenFooter.ChildrenOfType<PlaylistsPlayButton>().Single().Enabled.Value, () => Is.True);
+
+            AddStep("select second item", () => screen.SelectedItem.Value = room.Playlist[1]);
+            AddUntilStep("play button is disabled", () => ScreenFooter.ChildrenOfType<PlaylistsPlayButton>().Single().Enabled.Value, () => Is.False);
+        }
+
         protected override void Dispose(bool isDisposing)
         {
             base.Dispose(isDisposing);
@@ -669,9 +887,11 @@ namespace osu.Game.Tests.Visual.Playlists
                 rulesets.Dispose();
         }
 
-        private partial class TestPlaylistsScreen : OsuScreen
+        private partial class TestPlaylistsScreen : OsuScreen, IHasSubScreenStack
         {
             public readonly OnlinePlaySubScreenStack Stack;
+
+            ScreenStack IHasSubScreenStack.SubScreenStack => Stack;
 
             public TestPlaylistsScreen(PlaylistsRoomSubScreen screen)
             {

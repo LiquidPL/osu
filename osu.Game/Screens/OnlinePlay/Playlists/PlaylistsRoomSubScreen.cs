@@ -20,20 +20,23 @@ using osu.Framework.Screens;
 using osu.Game.Audio;
 using osu.Game.Beatmaps;
 using osu.Game.Graphics.Cursor;
+using osu.Game.Graphics.UserInterface;
 using osu.Game.Input;
+using osu.Game.Input.Bindings;
 using osu.Game.Online.API;
 using osu.Game.Online.API.Requests;
 using osu.Game.Online.Rooms;
 using osu.Game.Overlays;
 using osu.Game.Rulesets;
 using osu.Game.Rulesets.Mods;
+using osu.Game.Screens.Footer;
 using osu.Game.Screens.Menu;
 using osu.Game.Screens.OnlinePlay.Components;
 using osu.Game.Screens.OnlinePlay.Match;
 using osu.Game.Screens.OnlinePlay.Match.Components;
 using osu.Game.Screens.OnlinePlay.Multiplayer;
 using osu.Game.Screens.Play;
-using osu.Game.Screens.Play.HUD;
+using osu.Game.Screens.Select;
 using osu.Game.Users;
 using osu.Game.Utils;
 using osuTK;
@@ -46,7 +49,7 @@ namespace osu.Game.Screens.OnlinePlay.Playlists
         /// <summary>
         /// Footer height.
         /// </summary>
-        private const float footer_height = 50;
+        private const float footer_height = ScreenFooter.HEIGHT;
 
         /// <summary>
         /// Padding between content and footer.
@@ -71,6 +74,8 @@ namespace osu.Game.Screens.OnlinePlay.Playlists
         public override string Title { get; }
 
         public override string ShortTitle => "playlist";
+
+        public override bool ShowFooter => true;
 
         public override bool? ApplyModTrackAdjustments => true;
 
@@ -130,7 +135,6 @@ namespace osu.Game.Screens.OnlinePlay.Playlists
         private FillFlowContainer progressSection = null!;
         private DrawableRoomPlaylist drawablePlaylist = null!;
 
-        private FillFlowContainer userModsSection = null!;
         private RoomModSelectOverlay userModsSelectOverlay = null!;
 
         private FillFlowContainer userStyleSection = null!;
@@ -138,6 +142,11 @@ namespace osu.Game.Screens.OnlinePlay.Playlists
 
         private Sample? sampleStart;
         private IDisposable? userModsSelectOverlayRegistration;
+
+        private FooterButtonMods? footerButtonMods;
+
+        private PlaylistsCloseButton? closeButton;
+        private PlaylistsPlayButton? playButton;
 
         public PlaylistsRoomSubScreen(Room room)
         {
@@ -277,49 +286,9 @@ namespace osu.Game.Screens.OnlinePlay.Playlists
                                                                         new Dimension(GridSizeMode.AutoSize),
                                                                         new Dimension(GridSizeMode.AutoSize),
                                                                         new Dimension(GridSizeMode.AutoSize),
-                                                                        new Dimension(GridSizeMode.AutoSize),
                                                                     },
                                                                     Content = new[]
                                                                     {
-                                                                        new Drawable[]
-                                                                        {
-                                                                            userModsSection = new FillFlowContainer
-                                                                            {
-                                                                                RelativeSizeAxes = Axes.X,
-                                                                                AutoSizeAxes = Axes.Y,
-                                                                                Margin = new MarginPadding { Bottom = row_padding },
-                                                                                Alpha = 0,
-                                                                                Children = new Drawable[]
-                                                                                {
-                                                                                    new OverlinedHeader("Extra mods"),
-                                                                                    new FillFlowContainer
-                                                                                    {
-                                                                                        AutoSizeAxes = Axes.Both,
-                                                                                        Direction = FillDirection.Horizontal,
-                                                                                        Spacing = new Vector2(10, 0),
-                                                                                        Children = new Drawable[]
-                                                                                        {
-                                                                                            new UserModSelectButton
-                                                                                            {
-                                                                                                Anchor = Anchor.CentreLeft,
-                                                                                                Origin = Anchor.CentreLeft,
-                                                                                                Width = 90,
-                                                                                                Height = 30,
-                                                                                                Text = "Select",
-                                                                                                Action = showUserModSelect,
-                                                                                            },
-                                                                                            new ModDisplay
-                                                                                            {
-                                                                                                Anchor = Anchor.CentreLeft,
-                                                                                                Origin = Anchor.CentreLeft,
-                                                                                                Current = UserMods,
-                                                                                                Scale = new Vector2(0.8f),
-                                                                                            }
-                                                                                        }
-                                                                                    }
-                                                                                }
-                                                                            }
-                                                                        },
                                                                         new Drawable[]
                                                                         {
                                                                             userStyleSection = new FillFlowContainer
@@ -409,31 +378,6 @@ namespace osu.Game.Screens.OnlinePlay.Playlists
                                 }
                             }
                         },
-                        new Container
-                        {
-                            Anchor = Anchor.BottomLeft,
-                            Origin = Anchor.BottomLeft,
-                            RelativeSizeAxes = Axes.X,
-                            Height = footer_height,
-                            Children = new Drawable[]
-                            {
-                                new Box
-                                {
-                                    RelativeSizeAxes = Axes.Both,
-                                    Colour = Color4Extensions.FromHex(@"28242d") // Temporary.
-                                },
-                                new Container
-                                {
-                                    RelativeSizeAxes = Axes.Both,
-                                    Padding = new MarginPadding(5),
-                                    Child = new PlaylistsRoomFooter(room)
-                                    {
-                                        OnStart = startPlay,
-                                        OnClose = closePlaylist
-                                    }
-                                }
-                            }
-                        }
                     }
                 }
             };
@@ -452,6 +396,9 @@ namespace osu.Game.Screens.OnlinePlay.Playlists
             base.LoadComplete();
 
             userModsSelectOverlayRegistration = overlayManager?.RegisterBlockingOverlay(userModsSelectOverlay);
+            RegisterShearedOverlay(userModsSelectOverlay);
+
+            userModsSelectOverlay.State.BindValueChanged(onUserModSelectOverlayStateChanged, true);
 
             room.PropertyChanged += onRoomPropertyChanged;
 
@@ -509,6 +456,8 @@ namespace osu.Game.Screens.OnlinePlay.Playlists
             else
             {
                 roomContent.Show();
+                footerButtonMods?.Appear(0);
+
                 settingsOverlay.Hide();
 
                 // Scheduled because room properties are updated in arbitrary order.
@@ -578,6 +527,24 @@ namespace osu.Game.Screens.OnlinePlay.Playlists
         }
 
         /// <summary>
+        /// Responds to changes in <see cref="userModsSelectOverlay"/> visibility in order to make space
+        /// for the overlay footer content.
+        /// </summary>
+        private void onUserModSelectOverlayStateChanged(ValueChangedEvent<Visibility> state)
+        {
+            if (state.NewValue == Visibility.Visible)
+            {
+                playButton?.Disappear();
+                closeButton?.Disappear();
+            }
+            else
+            {
+                playButton?.Appear();
+                closeButton?.UpdateState();
+            }
+        }
+
+        /// <summary>
         /// Validates the user mod style against the selected item and ruleset style.
         /// </summary>
         private void validateUserMods()
@@ -618,16 +585,16 @@ namespace osu.Game.Screens.OnlinePlay.Playlists
             bool freemods = item.Freestyle || allowedMods.Length > 0;
             bool freestyle = item.Freestyle;
 
-            if (freemods)
+            if (!freemods || room.EndDate <= DateTimeOffset.Now)
             {
-                userModsSection.Show();
-                userModsSelectOverlay.IsValidMod = m => allowedMods.Any(a => a.GetType() == m.GetType());
-            }
-            else
-            {
-                userModsSection.Hide();
+                if (footerButtonMods != null) footerButtonMods.Enabled.Value = false;
                 userModsSelectOverlay.Hide();
                 userModsSelectOverlay.IsValidMod = _ => false;
+            }
+            else if (freemods)
+            {
+                if (footerButtonMods != null) footerButtonMods.Enabled.Value = true;
+                userModsSelectOverlay.IsValidMod = m => allowedMods.Any(a => a.GetType() == m.GetType());
             }
 
             if (freestyle)
@@ -764,6 +731,33 @@ namespace osu.Game.Screens.OnlinePlay.Playlists
             return base.OnExiting(e);
         }
 
+        public override void FooterArriving()
+        {
+            base.FooterArriving();
+
+            if (footerButtonMods != null)
+            {
+                footerButtonMods.OnLoadComplete += _ =>
+                {
+                    if (room.RoomID == null)
+                        footerButtonMods.Disappear(0);
+                    else
+                        footerButtonMods.Appear(0);
+
+                    footerButtonMods.Enabled.Value = false;
+                    updateGameplayState();
+                };
+            }
+        }
+
+        public override void FooterExiting()
+        {
+            base.FooterExiting();
+
+            playButton?.Disappear().Expire();
+            closeButton?.Disappear().Expire();
+        }
+
         public override bool OnBackButton()
         {
             if (room.RoomID == null)
@@ -872,6 +866,60 @@ namespace osu.Game.Screens.OnlinePlay.Playlists
         // Normally this would be handled by ScreenStack, but we are in a child ScreenStack.
         public override bool PropagateNonPositionalInputSubTree => base.PropagateNonPositionalInputSubTree && (parentScreen?.IsCurrentScreen() ?? this.IsCurrentScreen());
 
+        protected override IReadOnlyList<ScreenFooterButton> CreateFooterButtons() =>
+        [
+            footerButtonMods = new FooterButtonMods(userModsSelectOverlay)
+            {
+                Hotkey = GlobalAction.ToggleModSelection,
+                Current = Mods,
+                RequestDeselectAllMods = () =>
+                {
+                    if (userModsSelectOverlay.State.Value == Visibility.Visible)
+                        userModsSelectOverlay.DeselectAll();
+                    else
+                        UserMods.Value = Array.Empty<Mod>();
+                },
+                Alpha = 0,
+            },
+        ];
+
+        protected override IReadOnlyList<Drawable> CreateFooterContent()
+        {
+            var content = base.CreateFooterContent().ToList();
+
+            const int button_spacing = 10;
+
+            content.AddRange(new ShearedButton[]
+            {
+                closeButton = new PlaylistsCloseButton(room)
+                {
+                    Anchor = Anchor.BottomRight,
+                    Origin = Anchor.BottomRight,
+                    Margin = new MarginPadding
+                    {
+                        Bottom = OsuGame.SCREEN_EDGE_MARGIN,
+                        Right = OsuGame.SCREEN_EDGE_MARGIN * 2 + PlaylistsPlayButton.WIDTH + button_spacing,
+                    },
+                    Alpha = 0,
+                    Action = closePlaylist,
+                },
+                playButton = new PlaylistsPlayButton(room)
+                {
+                    Anchor = Anchor.BottomRight,
+                    Origin = Anchor.BottomRight,
+                    Margin = new MarginPadding
+                    {
+                        Bottom = OsuGame.SCREEN_EDGE_MARGIN,
+                        Right = OsuGame.SCREEN_EDGE_MARGIN * 2,
+                    },
+                    Alpha = 0,
+                    Action = startPlay,
+                }
+            });
+
+            return content;
+        }
+
         protected override BackgroundScreen CreateBackground() => new RoomBackgroundScreen(room.Playlist.FirstOrDefault())
         {
             SelectedItem = { BindTarget = SelectedItem }
@@ -883,6 +931,16 @@ namespace osu.Game.Screens.OnlinePlay.Playlists
 
             userModsSelectOverlayRegistration?.Dispose();
             room.PropertyChanged -= onRoomPropertyChanged;
+        }
+
+        private partial class PlayerLoader : Play.PlayerLoader
+        {
+            public override bool ShowFooter => !QuickRestart;
+
+            public PlayerLoader(Func<Player> createPlayer)
+                : base(createPlayer)
+            {
+            }
         }
     }
 }
