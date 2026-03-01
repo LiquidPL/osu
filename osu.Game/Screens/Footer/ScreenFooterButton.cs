@@ -23,7 +23,7 @@ using osuTK.Graphics;
 
 namespace osu.Game.Screens.Footer
 {
-    public partial class ScreenFooterButton : OsuClickableContainer, IKeyBindingHandler<GlobalAction>
+    public partial class ScreenFooterButton : OsuClickableContainer, IFooterButton, IKeyBindingHandler<GlobalAction>
     {
         public const int CORNER_RADIUS = 10;
 
@@ -226,27 +226,6 @@ namespace osu.Game.Screens.Footer
             bar.FadeColour(accentColour, 150, Easing.OutQuint);
 
             glowBox.FadeColour(ColourInfo.GradientVertical(buttonAccentColour.Opacity(0f), buttonAccentColour.Opacity(0.2f)), 150, Easing.OutQuint);
-        }
-
-        public void AppearFromBottom(double delay)
-        {
-            Content.FinishTransforms();
-            Content.MoveToY(100f)
-                   .FadeOut()
-                   .Delay(delay)
-                   .MoveToY(0f, 240, Easing.OutCubic)
-                   .FadeIn(240, Easing.OutCubic);
-        }
-
-        public void DisappearToBottom(double delay, bool expire)
-        {
-            Content.FinishTransforms();
-            Content.Delay(delay)
-                   .FadeOut(240, Easing.InOutCubic)
-                   .MoveToY(100f, 240, Easing.InOutCubic);
-
-            if (expire)
-                this.Delay(Content.LatestTransformEndTime - Time.Current).Expire();
         }
     }
 }
