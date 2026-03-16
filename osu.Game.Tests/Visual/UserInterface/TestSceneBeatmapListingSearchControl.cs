@@ -8,6 +8,7 @@ using NUnit.Framework;
 using osu.Framework.Allocation;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
+using osu.Framework.Graphics.Cursor;
 using osu.Game.Beatmaps;
 using osu.Game.Configuration;
 using osu.Game.Extensions;
@@ -50,10 +51,14 @@ namespace osu.Game.Tests.Visual.UserInterface
 
             Children = new Drawable[]
             {
-                control = new BeatmapListingSearchControl
+                new PopoverContainer
                 {
-                    Anchor = Anchor.Centre,
-                    Origin = Anchor.Centre,
+                    RelativeSizeAxes = Axes.Both,
+                    Child = control = new BeatmapListingSearchControl
+                    {
+                        Anchor = Anchor.Centre,
+                        Origin = Anchor.Centre,
+                    },
                 },
                 new FillFlowContainer
                 {

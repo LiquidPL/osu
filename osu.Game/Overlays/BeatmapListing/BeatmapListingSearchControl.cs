@@ -184,6 +184,15 @@ namespace osu.Game.Overlays.BeatmapListing
             public BeatmapSearchTextBox()
             {
                 PlaceholderText = BeatmapsStrings.ListingSearchPrompt;
+
+                Add(new UserTagsButton
+                {
+                    Origin = Anchor.CentreRight,
+                    Anchor = Anchor.CentreRight,
+                    Margin = new MarginPadding { Right = 40 },
+                });
+
+                TextFlow.Padding = new MarginPadding { Right = 65 };
             }
 
             protected override bool OnKeyDown(KeyDownEvent e)

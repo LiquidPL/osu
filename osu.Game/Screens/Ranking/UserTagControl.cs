@@ -16,6 +16,7 @@ using osu.Framework.Graphics.UserInterface;
 using osu.Framework.Input;
 using osu.Framework.Input.Events;
 using osu.Game.Beatmaps;
+using osu.Game.Beatmaps.Drawables;
 using osu.Game.Configuration;
 using osu.Game.Extensions;
 using osu.Game.Online.API;
@@ -40,6 +41,7 @@ namespace osu.Game.Screens.Ranking
 
         private Bindable<APITag[]?> apiTags = null!;
         private BindableDictionary<long, UserTag> relevantTagsById { get; } = new BindableDictionary<long, UserTag>();
+        private BindableDictionary<long, bool> activeTagsById { get; } = new BindableDictionary<long, bool>();
 
         private readonly Bindable<APIBeatmap?> apiBeatmap = new Bindable<APIBeatmap?>();
 
@@ -102,6 +104,7 @@ namespace osu.Game.Screens.Ranking
                                                 addNewTagUserTag = new AddNewTagUserTag
                                                 {
                                                     AvailableTags = { BindTarget = relevantTagsById },
+                                                    ActiveTags = { BindTarget = activeTagsById },
                                                     OnTagSelected = toggleVote,
                                                 }
                                             ]
@@ -169,6 +172,11 @@ namespace osu.Game.Screens.Ranking
                     tag.Updating.Value = false;
                 }
             }
+
+            activeTagsById.Clear();
+            activeTagsById.AddRange(relevantTagsById.Values
+                                                    .Where(t => t.Voted.Value)
+                                                    .Select(t => new KeyValuePair<long, bool>(t.Id, true)));
         }
 
         private void displayTags(object? sender, NotifyCollectionChangedEventArgs e)
@@ -232,6 +240,7 @@ namespace osu.Game.Screens.Ranking
                     {
                         tag.VoteCount.Value -= 1;
                         tag.Voted.Value = false;
+                        activeTagsById.Remove(tag.Id);
                     };
                     request = removeReq;
                     break;
@@ -244,6 +253,8 @@ namespace osu.Game.Screens.Ranking
                         tag.Voted.Value = true;
                         if (!displayedTags.Contains(tag))
                             displayedTags.Add(tag);
+
+                        activeTagsById.Add(tag.Id, true);
                     };
                     request = addReq;
                     break;
@@ -293,6 +304,7 @@ namespace osu.Game.Screens.Ranking
         private partial class AddNewTagUserTag : DrawableUserTag, IHasPopover
         {
             public BindableDictionary<long, UserTag> AvailableTags { get; } = new BindableDictionary<long, UserTag>();
+            public BindableDictionary<long, bool> ActiveTags { get; } = new BindableDictionary<long, bool>();
 
             public Action<UserTag>? OnTagSelected { get; set; }
 
@@ -317,9 +329,11 @@ namespace osu.Game.Screens.Ranking
                 FadeEdgeEffectTo(0);
             }
 
-            public Popover GetPopover() => new AddTagsPopover
+            public Popover GetPopover() => new UserTagsPopover
             {
+                AllowableAnchors = new[] { Anchor.TopCentre, Anchor.BottomCentre },
                 AvailableTags = { BindTarget = AvailableTags },
+                ActiveTags = { BindTarget = ActiveTags },
                 OnSelected = OnTagSelected,
             };
         }
