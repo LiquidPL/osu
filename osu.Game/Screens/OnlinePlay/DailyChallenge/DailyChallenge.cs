@@ -25,6 +25,7 @@ using osu.Game.Database;
 using osu.Game.Graphics.Containers;
 using osu.Game.Graphics.Cursor;
 using osu.Game.Graphics.UserInterface;
+using osu.Game.Input.Bindings;
 using osu.Game.Localisation;
 using osu.Game.Online.API;
 using osu.Game.Online.API.Requests.Responses;
@@ -35,11 +36,13 @@ using osu.Game.Overlays;
 using osu.Game.Overlays.Notifications;
 using osu.Game.Rulesets;
 using osu.Game.Rulesets.Mods;
+using osu.Game.Screens.Footer;
 using osu.Game.Screens.OnlinePlay.DailyChallenge.Events;
 using osu.Game.Screens.OnlinePlay.Match;
 using osu.Game.Screens.OnlinePlay.Match.Components;
 using osu.Game.Screens.OnlinePlay.Playlists;
 using osu.Game.Screens.Play;
+using osu.Game.Screens.Select;
 using osu.Game.Users;
 using osuTK;
 
@@ -63,6 +66,9 @@ namespace osu.Game.Screens.OnlinePlay.DailyChallenge
         private RoomModSelectOverlay userModsSelectOverlay = null!;
         private Sample? sampleStart;
         private IDisposable? userModsSelectOverlayRegistration;
+
+        private FooterButtonMods footerButtonMods = null!;
+        private PlaylistsPlayButton playButton = null!;
 
         private DailyChallengeScoreBreakdown breakdown = null!;
         private DailyChallengeTotalsDisplay totals = null!;
@@ -101,6 +107,8 @@ namespace osu.Game.Screens.OnlinePlay.DailyChallenge
         [Resolved]
         private INotificationOverlay? notificationOverlay { get; set; }
 
+        public override bool ShowFooter => true;
+
         public override bool DisallowExternalBeatmapRulesetChanges => true;
 
         public override bool? ApplyModTrackAdjustments => true;
@@ -126,8 +134,6 @@ namespace osu.Game.Screens.OnlinePlay.DailyChallenge
 
             sampleStart = audio.Samples.Get(@"SongSelect/confirm-selection");
 
-            FillFlowContainer footerButtons;
-
             InternalChild = waves = new OnlinePlayScreenWaveContainer
             {
                 RelativeSizeAxes = Axes.Both,
@@ -149,14 +155,13 @@ namespace osu.Game.Screens.OnlinePlay.DailyChallenge
                             {
                                 Horizontal = WaveOverlayContainer.WIDTH_PADDING,
                                 Top = Header.HEIGHT,
+                                Bottom = ScreenFooter.HEIGHT + 30,
                             },
                             RowDimensions =
                             [
                                 new Dimension(GridSizeMode.AutoSize),
                                 new Dimension(GridSizeMode.Absolute, 10),
                                 new Dimension(),
-                                new Dimension(GridSizeMode.Absolute, 30),
-                                new Dimension(GridSizeMode.Absolute, 50)
                             ],
                             Content = new[]
                             {
@@ -270,43 +275,6 @@ namespace osu.Game.Screens.OnlinePlay.DailyChallenge
                                         }
                                     }
                                 ],
-                                null,
-                                [
-                                    new Container
-                                    {
-                                        RelativeSizeAxes = Axes.Both,
-                                        Padding = new MarginPadding
-                                        {
-                                            Horizontal = -WaveOverlayContainer.WIDTH_PADDING,
-                                        },
-                                        Children = new Drawable[]
-                                        {
-                                            new Box
-                                            {
-                                                RelativeSizeAxes = Axes.Both,
-                                                Colour = ColourProvider.Background5,
-                                            },
-                                            footerButtons = new FillFlowContainer
-                                            {
-                                                RelativeSizeAxes = Axes.Both,
-                                                Direction = FillDirection.Horizontal,
-                                                Padding = new MarginPadding(5),
-                                                Spacing = new Vector2(10),
-                                                Children = new Drawable[]
-                                                {
-                                                    new PlaylistsReadyButton(room)
-                                                    {
-                                                        Anchor = Anchor.Centre,
-                                                        Origin = Anchor.Centre,
-                                                        RelativeSizeAxes = Axes.Y,
-                                                        Size = new Vector2(250, 1),
-                                                        Action = startPlay
-                                                    }
-                                                }
-                                            },
-                                        }
-                                    }
-                                ],
                             }
                         }
                     }
@@ -322,16 +290,6 @@ namespace osu.Game.Screens.OnlinePlay.DailyChallenge
 
             if (playlistItem.AllowedMods.Any())
             {
-                footerButtons.Insert(-1, new UserModSelectButton
-                {
-                    Text = "Free mods",
-                    Anchor = Anchor.Centre,
-                    Origin = Anchor.Centre,
-                    RelativeSizeAxes = Axes.Y,
-                    Size = new Vector2(250, 1),
-                    Action = () => userModsSelectOverlay.Show(),
-                });
-
                 var rulesetInstance = rulesets.GetRuleset(playlistItem.RulesetID)!.CreateInstance();
                 var allowedMods = playlistItem.AllowedMods.Select(m => m.ToMod(rulesetInstance));
                 userModsSelectOverlay.IsValidMod = leaderboard.IsValidMod = m => allowedMods.Any(a => a.GetType() == m.GetType());
@@ -341,6 +299,64 @@ namespace osu.Game.Screens.OnlinePlay.DailyChallenge
             dailyChallengeInfo.BindTo(metadataClient.DailyChallengeInfo);
 
             ((IBindable<MultiplayerScore?>)breakdown.UserBestScore).BindTo(leaderboard.UserBestScore);
+        }
+
+        public override void FooterArriving()
+        {
+            base.FooterArriving();
+
+            footerButtonMods.OnLoadComplete += _ =>
+            {
+                footerButtonMods.Enabled.Value = playlistItem.Freestyle || playlistItem.AllowedMods.Length != 0;
+            };
+
+            playButton.OnLoadComplete += _ => playButton.Appear();
+
+            userModsSelectOverlay.State.BindValueChanged(userModSelectStateChanged, true);
+        }
+
+        public override void FooterExiting()
+        {
+            base.FooterExiting();
+
+            playButton.Disappear().Expire();
+        }
+
+        protected override IReadOnlyList<ScreenFooterButton> CreateFooterButtons() => new[]
+        {
+            footerButtonMods = new FooterButtonMods(userModsSelectOverlay)
+            {
+                Hotkey = GlobalAction.ToggleModSelection,
+                Current = Mods,
+                RequestDeselectAllMods = () =>
+                {
+                    if (userModsSelectOverlay.State.Value == Visibility.Visible)
+                        userModsSelectOverlay.DeselectAll();
+                    else
+                        userMods.Value = Array.Empty<Mod>();
+                },
+                Enabled = { Value = false },
+            },
+        };
+
+        protected override IReadOnlyList<Drawable> CreateFooterContent()
+        {
+            var content = base.CreateFooterContent().ToList();
+
+            content.Add(playButton = new PlaylistsPlayButton(room)
+            {
+                Anchor = Anchor.BottomRight,
+                Origin = Anchor.BottomRight,
+                Margin = new MarginPadding
+                {
+                    Bottom = OsuGame.SCREEN_EDGE_MARGIN,
+                    Right = OsuGame.SCREEN_EDGE_MARGIN * 2
+                },
+                Alpha = 0,
+                Action = startPlay,
+            });
+
+            return content;
         }
 
         private void presentScore(long id)
@@ -386,6 +402,9 @@ namespace osu.Game.Screens.OnlinePlay.DailyChallenge
 
             userModsSelectOverlayRegistration = overlayManager?.RegisterBlockingOverlay(userModsSelectOverlay);
             userModsSelectOverlay.SelectedItem.Value = playlistItem;
+
+            RegisterShearedOverlay(userModsSelectOverlay);
+
             userMods.BindValueChanged(_ => Scheduler.AddOnce(updateMods), true);
 
             apiState.BindTo(API.State);
@@ -406,6 +425,14 @@ namespace osu.Game.Screens.OnlinePlay.DailyChallenge
             {
                 notificationOverlay?.Post(new SimpleNotification { Text = DailyChallengeStrings.ChallengeEndedNotification });
             }
+        }
+
+        private void userModSelectStateChanged(ValueChangedEvent<Visibility> state)
+        {
+            if (state.NewValue == Visibility.Visible)
+                playButton.Disappear();
+            else
+                playButton.Appear();
         }
 
         private void forcefullyExit()
@@ -562,6 +589,16 @@ namespace osu.Game.Screens.OnlinePlay.DailyChallenge
             }
 
             // And if we're handling, we don't really have much to do here.
+        }
+
+        private partial class PlayerLoader : Play.PlayerLoader
+        {
+            public override bool ShowFooter => !QuickRestart;
+
+            public PlayerLoader(Func<Player> createPlayer)
+                : base(createPlayer)
+            {
+            }
         }
     }
 }

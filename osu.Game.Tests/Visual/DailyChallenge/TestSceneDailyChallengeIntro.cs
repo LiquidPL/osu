@@ -2,8 +2,10 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System;
+using System.Linq;
 using NUnit.Framework;
 using osu.Framework.Allocation;
+using osu.Framework.Testing;
 using osu.Game.Configuration;
 using osu.Game.Online.API;
 using osu.Game.Online.Metadata;
@@ -59,6 +61,7 @@ namespace osu.Game.Tests.Visual.DailyChallenge
             AddAssert("intro played flag reset", () => Dependencies.Get<SessionStatics>().Get<bool>(Static.DailyChallengeIntroPlayed), () => Is.False);
 
             AddStep("push screen", () => LoadScreen(new DailyChallengeIntro(room)));
+            AddUntilStep("wait for main daily challenge screen", () => this.ChildrenOfType<Screens.OnlinePlay.DailyChallenge.DailyChallenge>().Any(), () => Is.True);
             AddUntilStep("intro played flag set", () => Dependencies.Get<SessionStatics>().Get<bool>(Static.DailyChallengeIntroPlayed), () => Is.True);
         }
 
