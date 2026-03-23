@@ -1072,11 +1072,13 @@ namespace osu.Game.Tests.Visual.UserInterface
 
             private IDisposable? firstOverlayRegistration;
 
-            [Cached]
-            private OverlayColourProvider colourProvider = new OverlayColourProvider(OverlayColourScheme.Blue);
-
             [Resolved]
             protected IOverlayManager? OverlayManager { get; private set; }
+
+            public TestModSelectOverlayScreen()
+            {
+                ColourProvider = new OverlayColourProvider(OverlayColourScheme.Blue);
+            }
 
             [BackgroundDependencyLoader]
             private void load()

@@ -2,6 +2,7 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System;
+using System.Diagnostics;
 using osu.Framework.Allocation;
 using osu.Framework.Audio;
 using osu.Framework.Audio.Sample;
@@ -35,9 +36,6 @@ namespace osu.Game.Screens.OnlinePlay.Matchmaking.Intro
 
         private bool animationBegan;
 
-        [Cached]
-        private readonly OverlayColourProvider colourProvider = new OverlayColourProvider(OverlayColourScheme.Plum);
-
         [Resolved]
         private MusicController musicController { get; set; } = null!;
 
@@ -53,10 +51,12 @@ namespace osu.Game.Screens.OnlinePlay.Matchmaking.Intro
 
         private IDisposable? duckOperation;
 
-        protected override BackgroundScreen CreateBackground() => new MatchmakingBackgroundScreen(colourProvider);
+        protected override BackgroundScreen CreateBackground() => new MatchmakingBackgroundScreen(ColourProvider!);
 
         public ScreenIntro(MatchmakingPoolType poolType)
         {
+            ColourProvider = new OverlayColourProvider(OverlayColourScheme.Plum);
+
             this.poolType = poolType;
             ValidForResume = false;
         }
@@ -64,6 +64,8 @@ namespace osu.Game.Screens.OnlinePlay.Matchmaking.Intro
         [BackgroundDependencyLoader]
         private void load(AudioManager audio)
         {
+            Debug.Assert(ColourProvider != null);
+
             string poolTypeName = poolType switch
             {
                 MatchmakingPoolType.QuickPlay => "Quick Play",
@@ -101,7 +103,7 @@ namespace osu.Game.Screens.OnlinePlay.Matchmaking.Intro
                                     {
                                         new Box
                                         {
-                                            Colour = colourProvider.Background3,
+                                            Colour = ColourProvider.Background3,
                                             RelativeSizeAxes = Axes.Both,
                                         },
                                         new OsuSpriteText
