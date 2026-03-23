@@ -21,8 +21,10 @@ using osuTK;
 
 namespace osu.Game.Screens.OnlinePlay.Multiplayer.Match
 {
-    public partial class MultiplayerCountdownButton : IconButton, IHasPopover
+    public partial class MultiplayerCountdownButton : ShearedButton, IHasPopover
     {
+        public const int WIDTH = 40;
+
         private static readonly TimeSpan[] available_delays =
         {
             TimeSpan.FromSeconds(10),
@@ -40,17 +42,37 @@ namespace osu.Game.Screens.OnlinePlay.Multiplayer.Match
         [Resolved]
         private OsuColour colours { get; set; } = null!;
 
-        private readonly Drawable background;
+        private readonly Box flashLayer;
 
         public MultiplayerCountdownButton()
         {
-            Icon = FontAwesome.Regular.Clock;
+            Width = WIDTH;
 
-            Add(background = new Box
+            ButtonContent.AutoSizeAxes = Axes.None;
+            ButtonContent.RelativeSizeAxes = Axes.Both;
+
+            ButtonContent.Children = new Drawable[]
             {
-                RelativeSizeAxes = Axes.Both,
-                Depth = float.MaxValue
-            });
+                flashLayer = new Box
+                {
+                    Anchor = Anchor.Centre,
+                    Origin = Anchor.Centre,
+                    Shear = OsuGame.SHEAR,
+                    RelativeSizeAxes = Axes.Both,
+                    Colour = Colour4.White.Opacity(0.3f),
+                    Blending = BlendingParameters.Additive,
+                    Alpha = 0,
+                },
+                new SpriteIcon
+                {
+                    Anchor = Anchor.Centre,
+                    Origin = Anchor.Centre,
+                    Icon = FontAwesome.Regular.Clock,
+                    Size = new Vector2(18),
+                    Shadow = true,
+                    ShadowOffset = new Vector2(0.8f, 0.8f),
+                },
+            };
 
             base.Action = this.ShowPopover;
 
@@ -60,7 +82,8 @@ namespace osu.Game.Screens.OnlinePlay.Multiplayer.Match
         [BackgroundDependencyLoader]
         private void load(OsuColour colours)
         {
-            background.Colour = colours.Green;
+            DarkerColour = colours.Green3;
+            LighterColour = colours.Green1;
         }
 
         protected override void LoadComplete()
@@ -82,18 +105,38 @@ namespace osu.Game.Screens.OnlinePlay.Multiplayer.Match
 
             if (countdownActive)
             {
-                background
-                    .FadeColour(colours.YellowLight, 100, Easing.In)
-                    .Then()
-                    .FadeColour(colours.YellowDark, 900, Easing.OutQuint)
-                    .Loop();
+                DarkerColour = colours.YellowDark;
+                LighterColour = colours.YellowLight;
+
+                flashLayer.FadeOutFromOne(800, Easing.OutQuint)
+                          .Then()
+                          .Delay(200)
+                          .Loop();
             }
             else
             {
-                background
-                    .FadeColour(colours.Green, 200, Easing.OutQuint);
+                flashLayer.FadeOut();
+
+                DarkerColour = colours.Green3;
+                LighterColour = colours.Green1;
             }
         });
+
+        public void Appear()
+        {
+            if (Width > 0)
+                return;
+
+            this.ResizeWidthTo(WIDTH, 200, Easing.OutQuint);
+        }
+
+        public void Disappear()
+        {
+            if (Width == 0)
+                return;
+
+            this.ResizeWidthTo(0, 200, Easing.OutQuint);
+        }
 
         public Popover GetPopover()
         {
@@ -135,7 +178,14 @@ namespace osu.Game.Screens.OnlinePlay.Multiplayer.Match
                 });
             }
 
-            return new OsuPopover { Child = flow };
+            return new OsuPopover
+            {
+                Child = flow,
+                AllowableAnchors = new[]
+                {
+                    Anchor.TopCentre,
+                }
+            };
         }
     }
 }

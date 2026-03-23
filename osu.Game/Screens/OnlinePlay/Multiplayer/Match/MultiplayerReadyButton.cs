@@ -7,6 +7,7 @@ using System.Linq;
 using osu.Framework.Allocation;
 using osu.Framework.Audio;
 using osu.Framework.Audio.Sample;
+using osu.Framework.Bindables;
 using osu.Framework.Extensions.ObjectExtensions;
 using osu.Framework.Localisation;
 using osu.Framework.Threading;
@@ -16,8 +17,11 @@ using osu.Game.Screens.OnlinePlay.Components;
 
 namespace osu.Game.Screens.OnlinePlay.Multiplayer.Match
 {
-    public partial class MultiplayerReadyButton : ReadyButton
+    public partial class MultiplayerReadyButton : ReadyButtonV2
     {
+        [Resolved]
+        private OngoingOperationTracker ongoingOperationTracker { get; set; } = null!;
+
         [Resolved]
         private MultiplayerClient multiplayerClient { get; set; } = null!;
 
@@ -30,9 +34,14 @@ namespace osu.Game.Screens.OnlinePlay.Multiplayer.Match
         private Sample? countdownWarnSample;
         private Sample? countdownWarnFinalSample;
 
+        private IBindable<bool> operationInProgress = null!;
+
         [BackgroundDependencyLoader]
         private void load(AudioManager audio)
         {
+            operationInProgress = ongoingOperationTracker.InProgress.GetBoundCopy();
+            operationInProgress.BindValueChanged(_ => UpdateEnabledState(), true);
+
             countdownTickSample = audio.Samples.Get(@"Multiplayer/countdown-tick");
             countdownWarnSample = audio.Samples.Get(@"Multiplayer/countdown-warn");
             countdownWarnFinalSample = audio.Samples.Get(@"Multiplayer/countdown-warn-final");
@@ -64,6 +73,7 @@ namespace osu.Game.Screens.OnlinePlay.Multiplayer.Match
 
             updateButtonText();
             updateButtonColour();
+            UpdateEnabledState();
         });
 
         private void scheduleNextCountdownUpdate()
@@ -213,11 +223,23 @@ namespace osu.Game.Screens.OnlinePlay.Multiplayer.Match
                     break;
             }
 
-            void setYellow() => BackgroundColour = colours.YellowDark;
+            void setYellow()
+            {
+                DarkerColour = colours.YellowDark;
+                LighterColour = colours.YellowLight;
+            }
 
-            void setGreen() => BackgroundColour = colours.Green;
+            void setGreen()
+            {
+                DarkerColour = colours.Green3;
+                LighterColour = colours.Green1;
+            }
 
-            void setRed() => BackgroundColour = colours.Red;
+            void setRed()
+            {
+                DarkerColour = colours.Red3;
+                LighterColour = colours.Red1;
+            }
         }
 
         protected override void Dispose(bool isDisposing)
@@ -226,6 +248,28 @@ namespace osu.Game.Screens.OnlinePlay.Multiplayer.Match
 
             if (multiplayerClient.IsNotNull())
                 multiplayerClient.RoomUpdated -= onRoomUpdated;
+        }
+
+        protected override void UpdateEnabledState()
+        {
+            base.UpdateEnabledState();
+
+            if (multiplayerClient.Room == null)
+                return;
+
+            Enabled.Value &= multiplayerClient.Room.State != MultiplayerRoomState.Closed
+                             && !multiplayerClient.Room.CurrentPlaylistItem.Expired
+                             && !operationInProgress.Value;
+
+            int newCountReady = multiplayerClient.Room.Users.Count(u => u.State == MultiplayerUserState.Ready);
+
+            // When the local user is the host and spectating the match, the ready button should be enabled only if any users are ready.
+            if (multiplayerClient.LocalUser?.State == MultiplayerUserState.Spectating)
+                Enabled.Value &= multiplayerClient.IsHost && newCountReady > 0 && !multiplayerClient.Room.ActiveCountdowns.Any(c => c is MatchStartCountdown);
+
+            // When the local user is not the host, the button should only be enabled when no match is in progress.
+            if (!multiplayerClient.IsHost)
+                Enabled.Value &= multiplayerClient.Room.State == MultiplayerRoomState.Open;
         }
 
         public override LocalisableString TooltipText

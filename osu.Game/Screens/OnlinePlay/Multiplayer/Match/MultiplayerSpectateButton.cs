@@ -6,20 +6,18 @@ using osu.Framework.Allocation;
 using osu.Framework.Bindables;
 using osu.Framework.Extensions;
 using osu.Framework.Extensions.ObjectExtensions;
-using osu.Framework.Graphics;
-using osu.Framework.Graphics.Containers;
 using osu.Game.Beatmaps;
 using osu.Game.Configuration;
 using osu.Game.Database;
 using osu.Game.Graphics;
-using osu.Game.Graphics.UserInterfaceV2;
+using osu.Game.Graphics.UserInterface;
 using osu.Game.Online.Multiplayer;
 using osu.Game.Online.Rooms;
-using osuTK;
+using osu.Game.Screens.Footer;
 
 namespace osu.Game.Screens.OnlinePlay.Multiplayer.Match
 {
-    public partial class MultiplayerSpectateButton : CompositeDrawable
+    public partial class MultiplayerSpectateButton : ShearedButton, IFooterButton
     {
         [Resolved]
         private OngoingOperationTracker ongoingOperationTracker { get; set; } = null!;
@@ -30,19 +28,12 @@ namespace osu.Game.Screens.OnlinePlay.Multiplayer.Match
         [Resolved]
         private MultiplayerClient client { get; set; } = null!;
 
-        private readonly RoundedButton button;
-
         private IBindable<bool> operationInProgress = null!;
 
         public MultiplayerSpectateButton()
         {
-            InternalChild = button = new RoundedButton
-            {
-                RelativeSizeAxes = Axes.Both,
-                Size = Vector2.One,
-                Enabled = { Value = true },
-                Action = onClick
-            };
+            Width = 120;
+            Action = onClick;
         }
 
         private void onClick()
@@ -79,19 +70,21 @@ namespace osu.Game.Screens.OnlinePlay.Multiplayer.Match
             switch (client.LocalUser?.State)
             {
                 default:
-                    button.Text = "Spectate";
-                    button.BackgroundColour = colours.BlueDark;
+                    Text = "Spectate";
+                    DarkerColour = colours.Blue3;
+                    LighterColour = colours.Blue1;
                     break;
 
                 case MultiplayerUserState.Spectating:
-                    button.Text = "Stop spectating";
-                    button.BackgroundColour = colours.Gray4;
+                    Text = "Stop spectating";
+                    DarkerColour = colours.Gray4;
+                    LighterColour = colours.Gray1;
                     break;
             }
 
-            button.Enabled.Value = client.Room != null
-                                   && client.Room.State != MultiplayerRoomState.Closed
-                                   && !operationInProgress.Value;
+            Enabled.Value = client.Room != null
+                            && client.Room.State != MultiplayerRoomState.Closed
+                            && !operationInProgress.Value;
 
             Scheduler.AddOnce(checkForAutomaticDownload);
         }

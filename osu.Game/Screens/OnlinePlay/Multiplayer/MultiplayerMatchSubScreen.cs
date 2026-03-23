@@ -2,6 +2,7 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Humanizer;
 using osu.Framework.Allocation;
@@ -19,6 +20,7 @@ using osu.Framework.Screens;
 using osu.Game.Audio;
 using osu.Game.Beatmaps;
 using osu.Game.Graphics.Cursor;
+using osu.Game.Input.Bindings;
 using osu.Game.Online;
 using osu.Game.Online.API;
 using osu.Game.Online.API.Requests.Responses;
@@ -28,18 +30,19 @@ using osu.Game.Online.Rooms;
 using osu.Game.Overlays;
 using osu.Game.Overlays.Dialog;
 using osu.Game.Rulesets;
+using osu.Game.Rulesets.Mods;
+using osu.Game.Screens.Footer;
 using osu.Game.Screens.Menu;
 using osu.Game.Screens.OnlinePlay.Components;
-using osu.Game.Screens.OnlinePlay.Match;
 using osu.Game.Screens.OnlinePlay.Match.Components;
 using osu.Game.Screens.OnlinePlay.Multiplayer.Match;
 using osu.Game.Screens.OnlinePlay.Multiplayer.Match.Playlist;
 using osu.Game.Screens.OnlinePlay.Multiplayer.Participants;
 using osu.Game.Screens.OnlinePlay.Multiplayer.Spectate;
 using osu.Game.Screens.OnlinePlay.Playlists;
+using osu.Game.Screens.Select;
 using osu.Game.Users;
 using osu.Game.Utils;
-using osuTK;
 using ParticipantsList = osu.Game.Screens.OnlinePlay.Multiplayer.Participants.ParticipantsList;
 
 namespace osu.Game.Screens.OnlinePlay.Multiplayer
@@ -50,7 +53,7 @@ namespace osu.Game.Screens.OnlinePlay.Multiplayer
         /// <summary>
         /// Footer height.
         /// </summary>
-        private const float footer_height = 50;
+        private const float footer_height = ScreenFooter.HEIGHT;
 
         /// <summary>
         /// Padding between content and footer.
@@ -75,6 +78,8 @@ namespace osu.Game.Screens.OnlinePlay.Multiplayer
         public override string Title { get; }
 
         public override string ShortTitle => "room";
+
+        public override bool ShowFooter => true;
 
         public override bool? ApplyModTrackAdjustments => true;
 
@@ -141,7 +146,6 @@ namespace osu.Game.Screens.OnlinePlay.Multiplayer
         private Drawable roomContent = null!;
         private MultiplayerMatchSettingsOverlay settingsOverlay = null!;
 
-        private FillFlowContainer userModsSection = null!;
         private MultiplayerUserModSelectOverlay userModsSelectOverlay = null!;
 
         private FillFlowContainer userStyleSection = null!;
@@ -151,6 +155,10 @@ namespace osu.Game.Screens.OnlinePlay.Multiplayer
 
         private Sample? sampleStart;
         private IDisposable? userModsSelectOverlayRegistration;
+
+        private FooterButtonMods? footerButtonMods;
+        private MultiplayerSpectateButton? spectateButton;
+        private MatchStartControl? matchStartControl;
 
         private long lastPlaylistItemId;
         private bool isRoomJoined;
@@ -271,7 +279,6 @@ namespace osu.Game.Screens.OnlinePlay.Multiplayer
                                                                         new Dimension(GridSizeMode.Absolute, 5),
                                                                         new Dimension(),
                                                                         new Dimension(GridSizeMode.AutoSize),
-                                                                        new Dimension(GridSizeMode.AutoSize),
                                                                     },
                                                                     Content = new[]
                                                                     {
@@ -297,44 +304,6 @@ namespace osu.Game.Screens.OnlinePlay.Multiplayer
                                                                                 RelativeSizeAxes = Axes.Both,
                                                                                 RequestEdit = ShowSongSelect,
                                                                                 RequestResults = showResults
-                                                                            }
-                                                                        },
-                                                                        new Drawable[]
-                                                                        {
-                                                                            userModsSection = new FillFlowContainer
-                                                                            {
-                                                                                RelativeSizeAxes = Axes.X,
-                                                                                AutoSizeAxes = Axes.Y,
-                                                                                Margin = new MarginPadding { Top = 10 },
-                                                                                Alpha = 0,
-                                                                                Children = new Drawable[]
-                                                                                {
-                                                                                    new OverlinedHeader("Extra mods"),
-                                                                                    new FillFlowContainer
-                                                                                    {
-                                                                                        AutoSizeAxes = Axes.Both,
-                                                                                        Direction = FillDirection.Horizontal,
-                                                                                        Spacing = new Vector2(10, 0),
-                                                                                        Children = new Drawable[]
-                                                                                        {
-                                                                                            new UserModSelectButton
-                                                                                            {
-                                                                                                Anchor = Anchor.CentreLeft,
-                                                                                                Origin = Anchor.CentreLeft,
-                                                                                                Width = 90,
-                                                                                                Height = 30,
-                                                                                                Text = "Select",
-                                                                                                Action = showUserModSelect,
-                                                                                            },
-                                                                                            new MultiplayerUserModDisplay
-                                                                                            {
-                                                                                                Anchor = Anchor.CentreLeft,
-                                                                                                Origin = Anchor.CentreLeft,
-                                                                                                Scale = new Vector2(0.8f),
-                                                                                            },
-                                                                                        }
-                                                                                    },
-                                                                                }
                                                                             }
                                                                         },
                                                                         new Drawable[]
@@ -392,27 +361,6 @@ namespace osu.Game.Screens.OnlinePlay.Multiplayer
                                 settingsOverlay = new MultiplayerMatchSettingsOverlay(room)
                             }
                         },
-                        new Container
-                        {
-                            Anchor = Anchor.BottomLeft,
-                            Origin = Anchor.BottomLeft,
-                            RelativeSizeAxes = Axes.X,
-                            Height = footer_height,
-                            Children = new Drawable[]
-                            {
-                                new Box
-                                {
-                                    RelativeSizeAxes = Axes.Both,
-                                    Colour = Color4Extensions.FromHex(@"28242d") // Temporary.
-                                },
-                                new Container
-                                {
-                                    RelativeSizeAxes = Axes.Both,
-                                    Padding = new MarginPadding(5),
-                                    Child = new MultiplayerMatchFooter()
-                                }
-                            }
-                        }
                     }
                 }
             };
@@ -429,6 +377,20 @@ namespace osu.Game.Screens.OnlinePlay.Multiplayer
 
             userModsSelectOverlayRegistration = overlayManager?.RegisterBlockingOverlay(userModsSelectOverlay);
             RegisterShearedOverlay(userModsSelectOverlay);
+
+            userModsSelectOverlay.State.BindValueChanged(state =>
+            {
+                if (state.NewValue == Visibility.Visible)
+                {
+                    spectateButton?.Disappear();
+                    matchStartControl?.Disappear();
+                }
+                else
+                {
+                    spectateButton?.Appear();
+                    matchStartControl?.Appear();
+                }
+            }, true);
 
             client.RoomUpdated += onRoomUpdated;
             client.SettingsChanged += onSettingsChanged;
@@ -465,6 +427,11 @@ namespace osu.Game.Screens.OnlinePlay.Multiplayer
             if (!wasRoomJoined && isRoomJoined)
             {
                 roomContent.Show();
+
+                footerButtonMods?.Appear();
+                spectateButton?.Appear();
+                matchStartControl?.Appear();
+
                 settingsOverlay.Hide();
             }
 
@@ -679,10 +646,12 @@ namespace osu.Game.Screens.OnlinePlay.Multiplayer
             bool freestyle = item.Freestyle;
 
             if (freemods)
-                userModsSection.Show();
+            {
+                if (footerButtonMods != null) footerButtonMods.Enabled.Value = true;
+            }
             else
             {
-                userModsSection.Hide();
+                if (footerButtonMods != null) footerButtonMods.Enabled.Value = false;
                 userModsSelectOverlay.Hide();
             }
 
@@ -786,6 +755,42 @@ namespace osu.Game.Screens.OnlinePlay.Multiplayer
 
             onLeaving();
             return base.OnExiting(e);
+        }
+
+        public override void FooterArriving()
+        {
+            base.FooterArriving();
+
+            if (footerButtonMods != null)
+            {
+                footerButtonMods.OnLoadComplete += _ =>
+                {
+                    if (room.RoomID == null)
+                        footerButtonMods.Disappear();
+                    else
+                        footerButtonMods.Appear();
+
+                    footerButtonMods.Enabled.Value = false;
+                    updateGameplayState();
+                };
+            }
+
+            if (!isRoomJoined)
+                return;
+
+            if (spectateButton != null)
+                spectateButton.OnLoadComplete += _ => spectateButton.Appear();
+
+            if (matchStartControl != null)
+                matchStartControl.OnLoadComplete += _ => matchStartControl.Appear();
+        }
+
+        public override void FooterExiting()
+        {
+            base.FooterExiting();
+
+            spectateButton?.Disappear().Expire();
+            matchStartControl?.Disappear().Expire();
         }
 
         public override bool OnBackButton()
@@ -936,6 +941,55 @@ namespace osu.Game.Screens.OnlinePlay.Multiplayer
         // Block all input to this screen during gameplay/etc when the parent screen is no longer current.
         // Normally this would be handled by ScreenStack, but we are in a child ScreenStack.
         public override bool PropagateNonPositionalInputSubTree => base.PropagateNonPositionalInputSubTree && (parentScreen?.IsCurrentScreen() ?? this.IsCurrentScreen());
+
+        protected override IReadOnlyList<ScreenFooterButton> CreateFooterButtons() =>
+        [
+            footerButtonMods = new FooterButtonMods(userModsSelectOverlay)
+            {
+                Hotkey = GlobalAction.ToggleModSelection,
+                Current = Mods,
+                RequestDeselectAllMods = () =>
+                {
+                    if (userModsSelectOverlay.State.Value == Visibility.Visible)
+                        userModsSelectOverlay.DeselectAll();
+                    else
+                        userModsSelectOverlay.SelectedMods.Value = Array.Empty<Mod>();
+                },
+            },
+        ];
+
+        protected override IReadOnlyList<Drawable> CreateFooterContent()
+        {
+            var content = base.CreateFooterContent().ToList();
+
+            content.AddRange([
+                spectateButton = new MultiplayerSpectateButton
+                {
+                    Width = 120,
+                    Anchor = Anchor.BottomRight,
+                    Origin = Anchor.BottomRight,
+                    Margin = new MarginPadding
+                    {
+                        Bottom = OsuGame.SCREEN_EDGE_MARGIN,
+                        Right = OsuGame.SCREEN_EDGE_MARGIN * 2 + 260 + 5,
+                    },
+                    Alpha = 0,
+                },
+                matchStartControl = new MatchStartControl
+                {
+                    Anchor = Anchor.BottomRight,
+                    Origin = Anchor.BottomRight,
+                    Margin = new MarginPadding
+                    {
+                        Bottom = OsuGame.SCREEN_EDGE_MARGIN,
+                        Right = OsuGame.SCREEN_EDGE_MARGIN * 2,
+                    },
+                    Alpha = 0,
+                },
+            ]);
+
+            return content;
+        }
 
         protected override BackgroundScreen CreateBackground() => new MultiplayerRoomBackgroundScreen();
 

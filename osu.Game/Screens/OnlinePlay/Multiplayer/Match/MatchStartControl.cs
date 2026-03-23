@@ -17,11 +17,11 @@ using osu.Game.Online.Multiplayer;
 using osu.Game.Online.Multiplayer.Countdown;
 using osu.Game.Overlays;
 using osu.Game.Overlays.Dialog;
-using osuTK;
+using osu.Game.Screens.Footer;
 
 namespace osu.Game.Screens.OnlinePlay.Multiplayer.Match
 {
-    public partial class MatchStartControl : CompositeDrawable
+    public partial class MatchStartControl : CompositeDrawable, IFooterButton
     {
         [Resolved]
         private OngoingOperationTracker ongoingOperationTracker { get; set; } = null!;
@@ -45,13 +45,23 @@ namespace osu.Game.Screens.OnlinePlay.Multiplayer.Match
 
         public MatchStartControl()
         {
+            Width = 260;
+            AutoSizeAxes = Axes.Y;
+            Shear = OsuGame.SHEAR;
+
             InternalChild = new GridContainer
             {
-                RelativeSizeAxes = Axes.Both,
+                RelativeSizeAxes = Axes.X,
+                AutoSizeAxes = Axes.Y,
+                Shear = -OsuGame.SHEAR,
                 ColumnDimensions = new[]
                 {
                     new Dimension(),
                     new Dimension(GridSizeMode.Absolute, 5),
+                    new Dimension(GridSizeMode.AutoSize),
+                },
+                RowDimensions = new[]
+                {
                     new Dimension(GridSizeMode.AutoSize)
                 },
                 Content = new[]
@@ -60,19 +70,16 @@ namespace osu.Game.Screens.OnlinePlay.Multiplayer.Match
                     {
                         readyButton = new MultiplayerReadyButton
                         {
-                            RelativeSizeAxes = Axes.Both,
-                            Size = Vector2.One,
+                            RelativeSizeAxes = Axes.X,
                             Action = onReadyButtonClick,
                         },
                         null,
                         countdownButton = new MultiplayerCountdownButton
                         {
-                            RelativeSizeAxes = Axes.Y,
-                            Size = new Vector2(40, 1),
-                            Alpha = 0,
                             Action = startCountdown,
-                            CancelAction = cancelCountdown
-                        }
+                            CancelAction = cancelCountdown,
+                            Width = 0,
+                        },
                     }
                 }
             };
@@ -179,7 +186,6 @@ namespace osu.Game.Screens.OnlinePlay.Multiplayer.Match
         {
             if (client.Room == null)
             {
-                readyButton.Enabled.Value = false;
                 countdownButton.Enabled.Value = false;
                 return;
             }
@@ -190,35 +196,35 @@ namespace osu.Game.Screens.OnlinePlay.Multiplayer.Match
             int newCountTotal = client.Room.Users.Count(u => u.State != MultiplayerUserState.Spectating);
 
             if (!client.IsHost || client.Room.Settings.AutoStartEnabled)
-                countdownButton.Hide();
+                countdownButton.Disappear();
             else
             {
                 switch (localUser?.State)
                 {
                     default:
-                        countdownButton.Hide();
+                        countdownButton.Disappear();
                         break;
 
                     case MultiplayerUserState.Idle:
                     case MultiplayerUserState.Spectating:
                     case MultiplayerUserState.Ready:
-                        countdownButton.Show();
+                        countdownButton.Appear();
                         break;
                 }
             }
 
-            readyButton.Enabled.Value = countdownButton.Enabled.Value =
+            countdownButton.Enabled.Value =
                 client.Room.State != MultiplayerRoomState.Closed
                 && !client.Room.CurrentPlaylistItem.Expired
                 && !operationInProgress.Value;
 
-            // When the local user is the host and spectating the match, the ready button should be enabled only if any users are ready.
-            if (localUser?.State == MultiplayerUserState.Spectating)
-                readyButton.Enabled.Value &= client.IsHost && newCountReady > 0 && !client.Room.ActiveCountdowns.Any(c => c is MatchStartCountdown);
-
-            // When the local user is not the host, the button should only be enabled when no match is in progress.
-            if (!client.IsHost)
-                readyButton.Enabled.Value &= client.Room.State == MultiplayerRoomState.Open;
+            // // When the local user is the host and spectating the match, the ready button should be enabled only if any users are ready.
+            // if (localUser?.State == MultiplayerUserState.Spectating)
+            //     readyButton.Enabled.Value &= client.IsHost && newCountReady > 0 && !client.Room.ActiveCountdowns.Any(c => c is MatchStartCountdown);
+            //
+            // // When the local user is not the host, the button should only be enabled when no match is in progress.
+            // if (!client.IsHost)
+            //     readyButton.Enabled.Value &= client.Room.State == MultiplayerRoomState.Open;
 
             // At all times, the countdown button should only be enabled when no match is in progress.
             countdownButton.Enabled.Value &= client.Room.State == MultiplayerRoomState.Open;
