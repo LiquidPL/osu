@@ -8,6 +8,7 @@ using System.Threading;
 using osu.Framework.Allocation;
 using osu.Framework.Bindables;
 using osu.Framework.Graphics;
+using osu.Framework.Graphics.Colour;
 using osu.Game.Beatmaps;
 using osu.Game.Configuration;
 using osu.Game.Graphics.Backgrounds;
@@ -51,6 +52,12 @@ namespace osu.Game.Screens.Backgrounds
         /// </summary>
         public readonly Bindable<float> DimWhenUserSettingsIgnored = new Bindable<float>();
 
+        /// <summary>
+        /// A custom colour applied to the dim layer when <see cref="IgnoreUserSettings"/> is <c>true</c>.
+        /// Overrides <see cref="DimWhenUserSettingsIgnored"/> when set to a non-<c>null</c> value.
+        /// </summary>
+        public Bindable<ColourInfo?> ColourWhenUserSettingsIgnored { get; } = new Bindable<ColourInfo?>();
+
         internal readonly Bindable<bool> IsBreakTime = new Bindable<bool>();
 
         private readonly DimmableBackground dimmable;
@@ -68,6 +75,7 @@ namespace osu.Game.Screens.Backgrounds
             dimmable.IsBreakTime.BindTo(IsBreakTime);
             dimmable.BlurAmount.BindTo(BlurAmount);
             dimmable.DimWhenUserSettingsIgnored.BindTo(DimWhenUserSettingsIgnored);
+            dimmable.ColourWhenUserSettingsIgnored.BindTo(ColourWhenUserSettingsIgnored);
         }
 
         [BackgroundDependencyLoader]

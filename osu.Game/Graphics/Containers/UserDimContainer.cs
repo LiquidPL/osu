@@ -5,6 +5,7 @@ using System;
 using osu.Framework.Allocation;
 using osu.Framework.Bindables;
 using osu.Framework.Graphics;
+using osu.Framework.Graphics.Colour;
 using osu.Framework.Graphics.Containers;
 using osu.Game.Configuration;
 using osu.Game.Screens.Play;
@@ -48,6 +49,12 @@ namespace osu.Game.Graphics.Containers
         /// The amount of dim to be used when <see cref="IgnoreUserSettings"/> is <c>true</c>.
         /// </summary>
         public Bindable<float> DimWhenUserSettingsIgnored { get; } = new Bindable<float>();
+
+        /// <summary>
+        /// A custom colour applied to the dim layer when <see cref="IgnoreUserSettings"/> is <c>true</c>.
+        /// Overrides <see cref="DimWhenUserSettingsIgnored"/> when set to a non-<c>null</c> value.
+        /// </summary>
+        public Bindable<ColourInfo?> ColourWhenUserSettingsIgnored { get; } = new Bindable<ColourInfo?>();
 
         protected Bindable<bool> LightenDuringBreaks { get; private set; } = null!;
 
@@ -103,7 +110,18 @@ namespace osu.Game.Graphics.Containers
             ContentDisplayed = ShowDimContent;
 
             dimContent.FadeTo(ContentDisplayed ? 1 : 0, BACKGROUND_FADE_DURATION, Easing.OutQuint);
-            dimContent.FadeColour(OsuColour.Gray(1f - DimLevel), BACKGROUND_FADE_DURATION, Easing.OutQuint);
+            // dimContent.FadeColour(IgnoreUserSettings.Value
+            //         ? ColourInfo.GradientVertical(OsuColour.Gray(0.3f), OsuColour.Gray(0.05f))
+            //         : OsuColour.Gray(1f - DimLevel),
+            //     BACKGROUND_FADE_DURATION, Easing.OutQuint);
+            // dimContent.FadeColour(OsuColour.Gray(1f - DimLevel), BACKGROUND_FADE_DURATION, Easing.OutQuint);
+
+            var dimColour = OsuColour.Gray(1f - DimLevel);
+            dimContent.FadeColour(
+                IgnoreUserSettings.Value ? ColourWhenUserSettingsIgnored.Value ?? dimColour : dimColour,
+                BACKGROUND_FADE_DURATION,
+                Easing.OutQuint
+            );
         }
     }
 }

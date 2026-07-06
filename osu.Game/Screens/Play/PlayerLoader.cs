@@ -10,6 +10,7 @@ using osu.Framework.Audio;
 using osu.Framework.Bindables;
 using osu.Framework.Development;
 using osu.Framework.Graphics;
+using osu.Framework.Graphics.Colour;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Shapes;
 using osu.Framework.Graphics.Sprites;
@@ -47,7 +48,7 @@ namespace osu.Game.Screens.Play
 {
     public partial class PlayerLoader : ScreenWithBeatmapBackground
     {
-        protected const float BACKGROUND_BLUR = 15;
+        protected const float BACKGROUND_BLUR = 8;
 
         protected const double CONTENT_OUT_DURATION = 300;
 
@@ -69,6 +70,8 @@ namespace osu.Game.Screens.Play
 
         // We show the previous screen status
         protected override UserActivity? InitialActivity => null;
+
+        protected BackgroundCover Cover { get; private set; } = null!;
 
         protected BeatmapMetadataDisplay MetadataInfo { get; private set; } = null!;
 
@@ -96,8 +99,6 @@ namespace osu.Game.Screens.Play
 
         private Bindable<bool> showStoryboards = null!;
 
-        private bool backgroundBrightnessReduction;
-
         private readonly BindableDouble volumeAdjustment = new BindableDouble(1);
 
         private AudioFilter? lowPassFilter;
@@ -116,19 +117,6 @@ namespace osu.Game.Screens.Play
         private GameHost host { get; set; } = null!;
 
         private const double quick_restart_initial_delay = 500;
-
-        protected bool BackgroundBrightnessReduction
-        {
-            set
-            {
-                if (value == backgroundBrightnessReduction)
-                    return;
-
-                backgroundBrightnessReduction = value;
-
-                ApplyToBackground(b => b.FadeColour(OsuColour.Gray(backgroundBrightnessReduction ? 0.8f : 1), 200));
-            }
-        }
 
         protected virtual bool ReadyForGameplay =>
             (!WindowShouldBeActiveForGameplayStart || host.IsActive.Value) &&
@@ -214,13 +202,21 @@ namespace osu.Game.Screens.Play
                     RelativeSizeAxes = Axes.Both,
                 }).WithChildren(new Drawable[]
                 {
-                    MetadataInfo = new BeatmapMetadataDisplay(Beatmap.Value, Mods, content.LogoFacade)
+                    MetadataInfo = new BeatmapMetadataDisplay(Beatmap.Value, Mods)
                     {
                         Alpha = 0,
-                        Anchor = Anchor.Centre,
-                        Origin = Anchor.Centre,
+                        Anchor = Anchor.TopCentre,
+                        Origin = Anchor.TopCentre,
+                        Y = BackgroundCover.HEIGHT + 80,
                     },
+                    // content.LogoFacade,
                 }),
+                Cover = new BackgroundCover(Beatmap.Value)
+                {
+                    Alpha = 0,
+                    Anchor = Anchor.TopCentre,
+                    Origin = Anchor.TopCentre,
+                },
                 disclaimers = new FillFlowContainer
                 {
                     Anchor = Anchor.TopLeft,
@@ -354,6 +350,11 @@ namespace osu.Game.Screens.Play
         {
             base.OnEntering(e);
 
+            ApplyToBackground(b => b.ColourWhenUserSettingsIgnored.Value = ColourInfo.GradientVertical(
+                OsuColour.Gray(0.3f),
+                OsuColour.Gray(0.05f)
+            ));
+
             Beatmap.Value.Track.AddAdjustment(AdjustableProperty.Volume, volumeAdjustment);
 
             // Start side content off-screen.
@@ -362,14 +363,15 @@ namespace osu.Game.Screens.Play
 
             content.ScaleTo(0.7f);
 
-            const double metadata_delay = 500;
+            // const double metadata_delay = 500;
+            const double metadata_delay = 650;
 
             MetadataInfo.Delay(metadata_delay).FadeIn(500, Easing.OutQuint);
             contentIn(metadata_delay + 250);
 
             // after an initial delay, start the debounced load check.
             // this will continue to execute even after resuming back on restart.
-            Scheduler.Add(new ScheduledDelegate(pushWhenLoaded, Clock.CurrentTime + PlayerPushDelay, 0));
+            // Scheduler.Add(new ScheduledDelegate(pushWhenLoaded, Clock.CurrentTime + PlayerPushDelay, 0));
 
             showMuteWarningIfNeeded();
             showBatteryWarningIfNeeded();
@@ -400,7 +402,7 @@ namespace osu.Game.Screens.Play
             quickRestartBlackLayer?.FadeOut(500, Easing.OutQuint).Expire();
             quickRestartBlackLayer = null;
 
-            BackgroundBrightnessReduction = false;
+            ApplyToBackground(b => b.ColourWhenUserSettingsIgnored.Value = null);
 
             // we're moving to player, so a period of silence is upcoming.
             // stop the track before removing adjustment to avoid a volume spike.
@@ -422,9 +424,12 @@ namespace osu.Game.Screens.Play
             // Ensure the screen doesn't expire until all the outwards fade operations have completed.
             this.Delay(CONTENT_OUT_DURATION).FadeOut();
 
-            ApplyToBackground(b => b.IgnoreUserSettings.Value = true);
+            ApplyToBackground(b =>
+            {
+                b.IgnoreUserSettings.Value = true;
+                b.ColourWhenUserSettingsIgnored.Value = null;
+            });
 
-            BackgroundBrightnessReduction = false;
             Beatmap.Value.Track.RemoveAdjustment(AdjustableProperty.Volume, volumeAdjustment);
 
             endHighPerformance();
@@ -444,7 +449,10 @@ namespace osu.Game.Screens.Play
 
             if (!resuming) logo.MoveTo(new Vector2(0.5f), duration, Easing.OutQuint);
 
-            logo.ScaleTo(new Vector2(0.15f), duration, Easing.OutQuint);
+            logo.ScaleTo(new Vector2(0.12f), duration, Easing.OutQuint);
+
+            logo.Triangles = false;
+            logo.Ripple = false;
 
             if (QuickRestart)
             {
@@ -457,13 +465,17 @@ namespace osu.Game.Screens.Play
             Scheduler.AddDelayed(() =>
             {
                 if (this.IsCurrentScreen())
-                    logoTracking = content.StartTracking(logo, resuming ? 0 : 500, Easing.InOutExpo);
+                    logo.MoveTo(new Vector2(0.5f, 0.85f), resuming ? 0 : 500, Easing.InOutExpo);
+                // logoTracking = content.StartTracking(logo, resuming ? 0 : 500, Easing.InOutExpo);
             }, resuming ? 0 : 250);
         }
 
         protected override void LogoExiting(OsuLogo logo)
         {
             base.LogoExiting(logo);
+
+            logo.Triangles = true;
+            logo.Ripple = true;
 
             logoTracking?.Dispose();
             logoTracking = null;
@@ -506,8 +518,6 @@ namespace osu.Game.Screens.Play
                     b.IgnoreUserSettings.Value = false;
                     b.BlurAmount.Value = 0;
                 });
-
-                BackgroundBrightnessReduction = false;
             }
             else
             {
@@ -517,8 +527,6 @@ namespace osu.Game.Screens.Play
                     b.IgnoreUserSettings.Value = true;
                     b.BlurAmount.Value = BACKGROUND_BLUR;
                 });
-
-                BackgroundBrightnessReduction = true;
             }
         }
 
@@ -591,6 +599,11 @@ namespace osu.Game.Screens.Play
                     .ScaleTo(1)
                     .FadeInFromZero(500, Easing.OutQuint);
 
+                Cover
+                    .Delay(quick_restart_initial_delay)
+                    .ScaleTo(1)
+                    .FadeInFromZero(500, Easing.OutQuint);
+
                 quickRestartBackButtonRestore?.Cancel();
                 quickRestartBackButtonRestore = Scheduler.AddDelayed(() => BackButtonVisibility.Value = true, quick_restart_initial_delay);
             }
@@ -603,6 +616,11 @@ namespace osu.Game.Screens.Play
                     .ScaleTo(1, 650, Easing.OutQuint)
                     .Then()
                     .Schedule(prepareNewPlayer);
+
+                Cover.Delay(500)
+                     .FadeIn()
+                     .MoveToY(-(BackgroundCover.HEIGHT + BackgroundCover.CORNER_RADIUS))
+                     .MoveToY(-BackgroundCover.CORNER_RADIUS, 500, Easing.OutQuint);
 
                 using (BeginDelayedSequence(delayBeforeSideDisplays))
                 {
@@ -649,6 +667,9 @@ namespace osu.Game.Screens.Play
                        .MoveToX(-disclaimers.DrawWidth, CONTENT_OUT_DURATION * 2, Easing.OutQuint);
             sideContent.FadeOut(CONTENT_OUT_DURATION, Easing.OutQuint)
                        .MoveToX(sideContent.DrawWidth, CONTENT_OUT_DURATION * 2, Easing.OutQuint);
+
+            Cover.ScaleTo(0.7f, CONTENT_OUT_DURATION * 2, Easing.OutQuint);
+            Cover.FadeOut(CONTENT_OUT_DURATION, Easing.OutQuint);
 
             lowPassFilter?.CutoffTo(AudioFilter.MAX_LOWPASS_CUTOFF, CONTENT_OUT_DURATION);
             highPassFilter?.CutoffTo(0, CONTENT_OUT_DURATION);

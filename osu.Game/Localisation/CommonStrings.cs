@@ -215,6 +215,11 @@ namespace osu.Game.Localisation
         public static LocalisableString Mapper => new TranslatableString(getKey(@"mapper"), @"Mapper");
 
         /// <summary>
+        /// "mapped by"
+        /// </summary>
+        public static LocalisableString MappedBy => new TranslatableString(getKey(@"mapped_by"), @"mapped by");
+
+        /// <summary>
         /// "Delete..."
         /// </summary>
         public static LocalisableString DeleteWithConfirmation => new TranslatableString(getKey(@"delete_with_confrmation"), @"Delete...");
