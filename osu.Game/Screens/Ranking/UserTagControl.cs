@@ -50,6 +50,16 @@ namespace osu.Game.Screens.Ranking
         /// </summary>
         public bool Writable { private get; init; }
 
+        /// <summary>
+        /// Determines whether the 'add new tag' button is visible.
+        /// </summary>
+        public bool ShowAddButton { private get; init; } = true;
+
+        /// <summary>
+        /// Allows to override the list of displayed tags using a provided filter function.
+        /// </summary>
+        public Func<UserTag, bool>? FilterOverride { private get; init; }
+
         private InputManager inputManager = null!;
 
         [Resolved]
@@ -71,7 +81,6 @@ namespace osu.Game.Screens.Ranking
                 {
                     RelativeSizeAxes = Axes.X,
                     AutoSizeAxes = Axes.Y,
-                    Padding = new MarginPadding(10),
                     ColumnDimensions =
                     [
                         new Dimension(),
@@ -96,7 +105,7 @@ namespace osu.Game.Screens.Ranking
                                         AutoSizeAxes = Axes.Y,
                                         Direction = FillDirection.Full,
                                         Spacing = new Vector2(4),
-                                        Children = Writable
+                                        Children = Writable && ShowAddButton
                                             ?
                                             [
                                                 addNewTagUserTag = new AddNewTagUserTag
@@ -157,6 +166,19 @@ namespace osu.Game.Screens.Ranking
                 {
                     tag.VoteCount.Value = topTag.VoteCount;
                     tag.Updating.Value = false;
+
+                    if (FilterOverride == null)
+                        displayedTags.Add(tag);
+                }
+            }
+
+            if (FilterOverride != null)
+            {
+                foreach (var tag in relevantTagsById.Values.Where(FilterOverride))
+                {
+                    tag.VoteCount.Value = 0;
+                    tag.Updating.Value = false;
+
                     displayedTags.Add(tag);
                 }
             }
@@ -259,8 +281,11 @@ namespace osu.Game.Screens.Ranking
         {
             var tagsWithNoVotes = displayedTags.Where(t => t.VoteCount.Value == 0).ToArray();
 
-            foreach (var tag in tagsWithNoVotes)
-                displayedTags.Remove(tag);
+            if (FilterOverride == null)
+            {
+                foreach (var tag in tagsWithNoVotes)
+                    displayedTags.Remove(tag);
+            }
 
             layout.Invalidate();
         }

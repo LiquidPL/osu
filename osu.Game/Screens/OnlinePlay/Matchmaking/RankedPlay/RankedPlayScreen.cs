@@ -281,6 +281,11 @@ namespace osu.Game.Screens.OnlinePlay.Matchmaking.RankedPlay
             };
         }
 
+        public void ShowBeatmapTagPrompt(BeatmapInfo beatmap)
+        {
+
+        }
+
         private void onRoomUpdated()
         {
             if (this.IsCurrentScreen() && client.Room == null)

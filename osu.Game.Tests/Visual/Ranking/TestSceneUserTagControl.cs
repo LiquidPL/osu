@@ -1,6 +1,7 @@
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+using System;
 using System.Linq;
 using NUnit.Framework;
 using osu.Framework.Allocation;
@@ -29,6 +30,26 @@ namespace osu.Game.Tests.Visual.Ranking
         private DummyAPIAccess dummyAPI => (DummyAPIAccess)API;
 
         private int writeRequestCount;
+
+        private Container content = null!;
+
+        protected override Container<Drawable> Content => content;
+
+        [SetUp]
+        public void SetUp()
+        {
+            base.Content.Child = new PopoverContainer
+            {
+                RelativeSizeAxes = Axes.Both,
+                Child = content = new Container
+                {
+                    Anchor = Anchor.Centre,
+                    Origin = Anchor.Centre,
+                    Width = 700,
+                    AutoSizeAxes = Axes.Y,
+                },
+            };
+        }
 
         [SetUpSteps]
         public void SetUpSteps()
@@ -139,6 +160,37 @@ namespace osu.Game.Tests.Visual.Ranking
         }
 
         [Test]
+        public void TestShowAddButton()
+        {
+            AddStep("show", () =>
+            {
+                var working = CreateWorkingBeatmap(new OsuRuleset().RulesetInfo);
+                working.BeatmapInfo.OnlineID = 42;
+                Beatmap.Value = working;
+                recreateControl(showAddButton: false);
+            });
+        }
+
+        [Test]
+        public void TestOverride()
+        {
+            AddStep("show", () =>
+            {
+                var working = CreateWorkingBeatmap(new OsuRuleset().RulesetInfo);
+                working.BeatmapInfo.OnlineID = 42;
+                Beatmap.Value = working;
+                Child = new UserTagControl(Beatmap.Value.BeatmapInfo)
+                {
+                    FilterOverride = t => t.FullName.StartsWith("style", StringComparison.Ordinal),
+                    Writable = true,
+                    Anchor = Anchor.Centre,
+                    Origin = Anchor.Centre,
+                    RelativeSizeAxes = Axes.X,
+                };
+            });
+        }
+
+        [Test]
         public void TestTagsDoNotMoveUntilMouseMovesAway()
         {
             AddStep("show", () =>
@@ -179,18 +231,15 @@ namespace osu.Game.Tests.Visual.Ranking
             UserTagControl.DrawableUserTag getDrawableTagById(long id) => getTagFlow().Single(t => t.UserTag.Id == id);
         }
 
-        private void recreateControl(bool writable = true)
+        private void recreateControl(bool writable = true, bool showAddButton = true)
         {
-            Child = new PopoverContainer
+            Child = new UserTagControl(Beatmap.Value.BeatmapInfo)
             {
-                RelativeSizeAxes = Axes.Both,
-                Child = new UserTagControl(Beatmap.Value.BeatmapInfo)
-                {
-                    Writable = writable,
-                    Width = 700,
-                    Anchor = Anchor.Centre,
-                    Origin = Anchor.Centre,
-                }
+                Writable = writable,
+                ShowAddButton = showAddButton,
+                Anchor = Anchor.Centre,
+                Origin = Anchor.Centre,
+                RelativeSizeAxes = Axes.X,
             };
         }
     }

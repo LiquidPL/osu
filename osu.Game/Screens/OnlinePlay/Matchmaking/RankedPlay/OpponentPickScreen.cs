@@ -7,10 +7,12 @@ using System.Threading.Tasks;
 using osu.Framework.Allocation;
 using osu.Framework.Audio;
 using osu.Framework.Audio.Sample;
+using osu.Framework.Bindables;
 using osu.Framework.Graphics;
 using osu.Framework.Localisation;
 using osu.Framework.Logging;
 using osu.Game.Audio;
+using osu.Game.Beatmaps;
 using osu.Game.Online.Multiplayer.MatchTypes.RankedPlay;
 using osu.Game.Screens.OnlinePlay.Matchmaking.RankedPlay.Card;
 using osu.Game.Screens.OnlinePlay.Matchmaking.RankedPlay.Components;
@@ -30,6 +32,12 @@ namespace osu.Game.Screens.OnlinePlay.Matchmaking.RankedPlay
 
         private PlayerHandOfCards playerHand = null!;
         private OpponentHandOfCards opponentHand = null!;
+
+        [Resolved]
+        private RankedPlayScreen rankedPlayScreen { get; set; } = null!;
+
+        [Resolved]
+        private IBindable<WorkingBeatmap> globalBeatmap { get; set; } = null!;
 
         [Resolved]
         private RankedPlayMatchInfo matchInfo { get; set; } = null!;
@@ -137,6 +145,8 @@ namespace osu.Game.Screens.OnlinePlay.Matchmaking.RankedPlay
 
                 delay += 50;
             }
+
+            rankedPlayScreen.ShowBeatmapTagPrompt(globalBeatmap.Value.BeatmapInfo);
         }
 
         protected override void LoadComplete()
