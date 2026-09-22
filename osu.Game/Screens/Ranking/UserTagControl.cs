@@ -51,6 +51,11 @@ namespace osu.Game.Screens.Ranking
         /// </summary>
         public bool Writable { private get; init; }
 
+        /// <summary>
+        /// Allows to override the list of displayed tags using a provided filter function.
+        /// </summary>
+        public Func<UserTag, bool>? Filter { private get; init; }
+
         private InputManager inputManager = null!;
 
         [Resolved]
@@ -93,7 +98,7 @@ namespace osu.Game.Screens.Ranking
                 }
             };
 
-            if (Writable)
+            if (Writable && Filter == null)
             {
                 tagFlow.Add(addNewTagUserTag = new AddNewTagUserTag
                 {
@@ -145,6 +150,19 @@ namespace osu.Game.Screens.Ranking
                 {
                     tag.VoteCount.Value = topTag.VoteCount;
                     tag.Updating.Value = false;
+
+                    if (Filter == null)
+                        displayedTags.Add(tag);
+                }
+            }
+
+            if (Filter != null)
+            {
+                foreach (var tag in relevantTagsById.Values.Where(Filter))
+                {
+                    tag.VoteCount.Value = 0;
+                    tag.Updating.Value = false;
+
                     displayedTags.Add(tag);
                 }
             }
@@ -245,6 +263,9 @@ namespace osu.Game.Screens.Ranking
 
         private void voteCountChanged(ValueChangedEvent<int> _)
         {
+            if (Filter != null)
+                return;
+
             var tagsWithNoVotes = displayedTags.Where(t => t.VoteCount.Value == 0).ToArray();
 
             foreach (var tag in tagsWithNoVotes)

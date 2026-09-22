@@ -3,7 +3,10 @@
 
 using System;
 using System.Linq;
+using NUnit.Framework;
+using osu.Framework.Allocation;
 using osu.Framework.Extensions;
+using osu.Framework.Testing;
 using osu.Game.Beatmaps;
 using osu.Game.Online.API;
 using osu.Game.Online.API.Requests;
@@ -11,25 +14,34 @@ using osu.Game.Online.API.Requests.Responses;
 using osu.Game.Online.Multiplayer;
 using osu.Game.Online.Multiplayer.MatchTypes.RankedPlay;
 using osu.Game.Online.Rooms;
+using osu.Game.Overlays;
 using osu.Game.Rulesets.Osu;
 using osu.Game.Screens.OnlinePlay.Matchmaking.RankedPlay;
+using osu.Game.Tests.Visual.Multiplayer;
 
 namespace osu.Game.Tests.Visual.RankedPlay
 {
-    public partial class TestSceneOpponentPickScreen : RankedPlayTestScene
+    public partial class TestSceneBeatmapTagPrompt : MultiplayerTestScene
     {
-        private RankedPlayScreen screen = null!;
-
         private DummyAPIAccess dummyAPI => (DummyAPIAccess)API;
 
         private APIBeatmapSet beatmapSet = null!;
 
+        private RankedPlayScreen screen = null!;
+
+        private int writeRequestCount;
+
+        [Cached]
+        private readonly OverlayColourProvider colourProvider = new OverlayColourProvider(OverlayColourScheme.Aquamarine);
+
+        [SetUpSteps]
         public override void SetUpSteps()
         {
             base.SetUpSteps();
 
             AddStep("set up network requests", () =>
             {
+                writeRequestCount = 0;
                 Func<APIRequest, bool>? defaultRequestHandler = ((DummyAPIAccess)API).HandleRequest;
 
                 dummyAPI.HandleRequest = request =>
@@ -74,6 +86,7 @@ namespace osu.Game.Tests.Visual.RankedPlay
                         case AddBeatmapTagRequest:
                         case RemoveBeatmapTagRequest:
                         {
+                            writeRequestCount++;
                             Scheduler.AddDelayed(request.TriggerSuccess, 500);
                             return true;
                         }
@@ -83,12 +96,14 @@ namespace osu.Game.Tests.Visual.RankedPlay
                     }
                 };
             });
+        }
 
-            AddStep("set beatmap", () =>
-            {
-                var beatmap = Beatmap.Value = CreateWorkingBeatmap(new OsuRuleset().RulesetInfo);
-                beatmapSet = CreateAPIBeatmapSet(beatmap.BeatmapInfo);
-            });
+        [Test]
+        public void TestBasic()
+        {
+            var beatmap = CreateWorkingBeatmap(new OsuRuleset().RulesetInfo);
+            beatmapSet = CreateAPIBeatmapSet(beatmap.BeatmapInfo);
+            Beatmap.Value = beatmap;
 
             AddStep("join room", () => JoinRoom(CreateDefaultRoom(MatchType.RankedPlay)));
             WaitForJoined();
@@ -98,34 +113,41 @@ namespace osu.Game.Tests.Visual.RankedPlay
             AddStep("load screen", () => LoadScreen(screen = new RankedPlayScreen(MultiplayerClient.ClientRoom!)));
             AddUntilStep("screen loaded", () => screen.IsLoaded);
 
-            BeatmapRequestHandler requestHandler = null!;
-            AddStep("setup ruleset", () => requestHandler = new BeatmapRequestHandler(new OsuRuleset().RulesetInfo));
-
-            AddStep("setup request handler", () => ((DummyAPIAccess)API).HandleRequest = requestHandler.HandleRequest);
-
-            AddStep("set pick state", () => MultiplayerClient.RankedPlayChangeStage(RankedPlayStage.CardPlay, state => state.ActiveUserId = 2).WaitSafely());
-
-            AddStep("reveal cards", () =>
+            AddStep("set results phase", () => MultiplayerClient.RankedPlayChangeStage(RankedPlayStage.Results, state =>
             {
-                for (int i = 0; i < 5; i++)
+                int losingPlayer = state.Users.Keys.First();
+
+                foreach (var (id, userInfo) in state.Users)
                 {
-                    int i2 = i;
-                    MultiplayerClient.RankedPlayRevealCard(hand => hand[i2], new MultiplayerPlaylistItem
+                    if (id == losingPlayer)
                     {
-                        ID = i2,
-                        BeatmapID = requestHandler.Beatmaps[i2].OnlineID
-                    }).WaitSafely();
+                        userInfo.DamageInfo = new RankedPlayDamageInfo
+                        {
+                            RawDamage = 123_456,
+                            Damage = 123_456,
+                            OldLife = 500_000,
+                            NewLife = 500_000 - 123_456,
+                            DirectDamage = 123_456,
+                        };
+
+                        userInfo.Life = 500_000 - 123_456;
+                    }
+                    else
+                    {
+                        userInfo.DamageInfo = new RankedPlayDamageInfo
+                        {
+                            RawDamage = 0,
+                            Damage = 0,
+                            OldLife = 1_000_000,
+                            NewLife = 1_000_000,
+                        };
+                    }
                 }
-            });
-
-            AddWaitStep("wait", 15);
-
-            AddStep("play beatmap", () => MultiplayerClient.PlayUserCard(2, hand => hand[0]).WaitSafely());
-            AddStep("reveal card", () => MultiplayerClient.RankedPlayRevealUserCard(2, hand => hand[0], new MultiplayerPlaylistItem
-            {
-                ID = 0,
-                BeatmapID = requestHandler.Beatmaps[0].OnlineID
             }).WaitSafely());
+
+            AddWaitStep("wait", 5);
+
+            AddStep("set opponent pick phase", () => MultiplayerClient.RankedPlayChangeStage(RankedPlayStage.CardPlay, state => state.ActiveUserId = 2).WaitSafely());
         }
     }
 }

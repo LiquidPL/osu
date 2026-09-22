@@ -86,6 +86,9 @@ namespace osu.Game.Screens.OnlinePlay.Matchmaking.RankedPlay
         [Resolved]
         private QueueController? controller { get; set; }
 
+        [Resolved]
+        private IBindable<WorkingBeatmap> globalBeatmap { get; set; } = null!;
+
         private readonly MultiplayerRoom room;
 
         private APIUser localUser = null!;
@@ -93,6 +96,9 @@ namespace osu.Game.Screens.OnlinePlay.Matchmaking.RankedPlay
 
         private readonly Container stageOverlayContainer;
         private readonly Container<RankedPlaySubScreen> screenContainer;
+
+        private readonly Container<BeatmapTagPrompt> tagPromptContainer;
+        private BeatmapTagPrompt? beatmapTagPrompt;
 
         private RankedPlayBottomOrnament ornament = null!;
         private IDisposable? ornamentOverlayRegistration;
@@ -150,6 +156,14 @@ namespace osu.Game.Screens.OnlinePlay.Matchmaking.RankedPlay
                                     screenContainer = new Container<RankedPlaySubScreen>
                                     {
                                         RelativeSizeAxes = Axes.Both,
+                                    },
+                                    tagPromptContainer = new Container<BeatmapTagPrompt>
+                                    {
+                                        Anchor = Anchor.BottomLeft,
+                                        Origin = Anchor.BottomLeft,
+                                        X = 10,
+                                        Y = -150,
+                                        AutoSizeAxes = Axes.Both,
                                     },
                                     new HamburgerMenu
                                     {
@@ -283,6 +297,20 @@ namespace osu.Game.Screens.OnlinePlay.Matchmaking.RankedPlay
             };
         }
 
+        private WorkingBeatmap? lastPickedBeatmap;
+
+        private void showBeatmapTagPrompt()
+        {
+            if (lastPickedBeatmap == null)
+                return;
+
+            tagPromptContainer.Child = beatmapTagPrompt = new BeatmapTagPrompt(lastPickedBeatmap.BeatmapInfo) { Alpha = 0 };
+
+            beatmapTagPrompt.OnLoadComplete += _ => Schedule(() => beatmapTagPrompt.FadeOut().MoveToX(-50).Delay(2000)
+                                                                                   .FadeIn(250, Easing.OutQuint)
+                                                                                   .MoveToX(0, 250, Easing.OutQuint));
+        }
+
         private void onRoomUpdated()
         {
             if (this.IsCurrentScreen() && client.Room == null)
@@ -333,6 +361,10 @@ namespace osu.Game.Screens.OnlinePlay.Matchmaking.RankedPlay
 
                 case RankedPlayStage.CardPlay:
                     ShowScreen(matchInfo.IsOwnTurn ? new PickScreen() : new OpponentPickScreen());
+
+                    if (matchInfo.IsOpponentTurn && ActiveSubScreen != null)
+                        ActiveSubScreen.OnLoadComplete += _ => showBeatmapTagPrompt();
+
                     break;
 
                 case RankedPlayStage.FinishCardPlay:
@@ -341,6 +373,7 @@ namespace osu.Game.Screens.OnlinePlay.Matchmaking.RankedPlay
 
                 case RankedPlayStage.GameplayWarmup:
                     ShowScreen(new GameplayWarmupScreen());
+                    beatmapTagPrompt?.FadeOut().Expire();
                     break;
 
                 case RankedPlayStage.Gameplay:
@@ -349,6 +382,12 @@ namespace osu.Game.Screens.OnlinePlay.Matchmaking.RankedPlay
 
                 case RankedPlayStage.Results:
                     ShowScreen(new ResultsScreen());
+
+                    // Storing this at the results screen since at this point
+                    // we're 100% confident that the global bindable has been
+                    // updated with the current beatmap.
+                    lastPickedBeatmap = globalBeatmap.Value;
+
                     break;
 
                 case RankedPlayStage.Ended:

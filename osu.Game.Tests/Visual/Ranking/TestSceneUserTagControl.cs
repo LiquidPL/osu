@@ -1,6 +1,7 @@
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+using System;
 using System.Linq;
 using NUnit.Framework;
 using osu.Framework.Allocation;
@@ -29,6 +30,26 @@ namespace osu.Game.Tests.Visual.Ranking
         private DummyAPIAccess dummyAPI => (DummyAPIAccess)API;
 
         private int writeRequestCount;
+
+        private Container content = null!;
+
+        protected override Container<Drawable> Content => content;
+
+        [SetUp]
+        public void SetUp()
+        {
+            base.Content.Child = new PopoverContainer
+            {
+                RelativeSizeAxes = Axes.Both,
+                Child = content = new Container
+                {
+                    Anchor = Anchor.Centre,
+                    Origin = Anchor.Centre,
+                    Width = 700,
+                    AutoSizeAxes = Axes.Y,
+                },
+            };
+        }
 
         [SetUpSteps]
         public void SetUpSteps()
@@ -139,6 +160,27 @@ namespace osu.Game.Tests.Visual.Ranking
         }
 
         [Test]
+        public void TestOverride()
+        {
+            AddStep("show", () =>
+            {
+                var working = CreateWorkingBeatmap(new OsuRuleset().RulesetInfo);
+                working.BeatmapInfo.OnlineID = 42;
+                Beatmap.Value = working;
+                Child = new UserTagControl(Beatmap.Value.BeatmapInfo)
+                {
+                    Filter = t => t.FullName.StartsWith("style", StringComparison.Ordinal),
+                    Writable = true,
+                    Anchor = Anchor.Centre,
+                    Origin = Anchor.Centre,
+                    RelativeSizeAxes = Axes.X,
+                };
+            });
+            AddUntilStep("wait for ready", () => getTagFlow().Count, () => Is.EqualTo(1));
+            AddAssert("add new button is not present", () => getTagFlow().ChildrenOfType<UserTagControl.DrawableUserTag>().Where(t => t.UserTag.DisplayName == "add"), () => Is.Empty);
+        }
+
+        [Test]
         public void TestTagsDoNotMoveUntilMouseMovesAway()
         {
             AddStep("show", () =>
@@ -174,23 +216,19 @@ namespace osu.Game.Tests.Visual.Ranking
             AddStep("move mouse away", () => InputManager.MoveMouseTo(Vector2.Zero));
             AddAssert("tag 2 reordered to first", () => getTagFlow().GetLayoutPosition(getDrawableTagById(2)), () => Is.EqualTo(0));
 
-            FillFlowContainer<UserTagControl.DrawableUserTag> getTagFlow() => this.ChildrenOfType<FillFlowContainer<UserTagControl.DrawableUserTag>>().Single();
-
             UserTagControl.DrawableUserTag getDrawableTagById(long id) => getTagFlow().Single(t => t.UserTag.Id == id);
         }
 
+        private FillFlowContainer<UserTagControl.DrawableUserTag> getTagFlow() => this.ChildrenOfType<FillFlowContainer<UserTagControl.DrawableUserTag>>().Single();
+
         private void recreateControl(bool writable = true)
         {
-            Child = new PopoverContainer
+            Child = new UserTagControl(Beatmap.Value.BeatmapInfo)
             {
-                RelativeSizeAxes = Axes.Both,
-                Child = new UserTagControl(Beatmap.Value.BeatmapInfo)
-                {
-                    Writable = writable,
-                    Width = 700,
-                    Anchor = Anchor.Centre,
-                    Origin = Anchor.Centre,
-                }
+                Writable = writable,
+                Anchor = Anchor.Centre,
+                Origin = Anchor.Centre,
+                RelativeSizeAxes = Axes.X,
             };
         }
     }
