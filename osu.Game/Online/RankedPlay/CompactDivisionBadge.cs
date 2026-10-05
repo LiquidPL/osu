@@ -38,7 +38,7 @@ namespace osu.Game.Online.RankedPlay
         [BackgroundDependencyLoader]
         private void load(TextureStore textures)
         {
-            Size = new Vector2(34, 18);
+            Size = new Vector2(36, 19.5f);
 
             InternalChild = new Sprite
             {
@@ -58,7 +58,7 @@ namespace osu.Game.Online.RankedPlay
                     ChildrenEnumerable = Enumerable.Range(1, (int)division.Division)
                                                    .Select(_ => new Container
                                                    {
-                                                       Size = new Vector2(3, 10),
+                                                       Size = new Vector2(3, 10.5f),
                                                        Masking = true,
                                                        CornerRadius = 1.5f,
                                                        Child = new Box

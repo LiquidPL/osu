@@ -9,6 +9,9 @@ namespace osu.Game.Online.API.Requests.Responses
 {
     public class RankedPlayDivision
     {
+        [JsonProperty(@"key")]
+        public string Key = string.Empty;
+
         [JsonProperty(@"tier")]
         public Tier Tier;
 

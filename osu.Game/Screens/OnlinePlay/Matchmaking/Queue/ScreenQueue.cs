@@ -7,21 +7,22 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using osu.Framework;
 using osu.Framework.Allocation;
 using osu.Framework.Audio;
 using osu.Framework.Audio.Sample;
 using osu.Framework.Bindables;
 using osu.Framework.Extensions;
+using osu.Framework.Extensions.LocalisationExtensions;
 using osu.Framework.Extensions.ObjectExtensions;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Audio;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Shapes;
 using osu.Framework.Graphics.Sprites;
+using osu.Framework.Graphics.Textures;
+using osu.Framework.Graphics.Transforms;
 using osu.Framework.Input.Bindings;
 using osu.Framework.Input.Events;
-using osu.Framework.Logging;
 using osu.Framework.Screens;
 using osu.Framework.Threading;
 using osu.Game.Database;
@@ -30,6 +31,7 @@ using osu.Game.Graphics;
 using osu.Game.Graphics.Containers;
 using osu.Game.Graphics.Sprites;
 using osu.Game.Graphics.UserInterface;
+using osu.Game.Graphics.UserInterfaceV2;
 using osu.Game.Input.Bindings;
 using osu.Game.Online.API;
 using osu.Game.Online.API.Requests.Responses;
@@ -42,8 +44,7 @@ using osu.Game.Overlays;
 using osu.Game.Overlays.Volume;
 using osu.Game.Rulesets;
 using osu.Game.Screens.Footer;
-using osu.Game.Screens.OnlinePlay.Matchmaking.Match;
-using osu.Game.Screens.OnlinePlay.Matchmaking.RankedPlay;
+using osu.Game.Users.Drawables;
 using osuTK;
 using osuTK.Graphics;
 
@@ -54,14 +55,24 @@ namespace osu.Game.Screens.OnlinePlay.Matchmaking.Queue
     /// </summary>
     public partial class ScreenQueue : OsuScreen
     {
+        public const int CORNER_RADIUS = 12;
+
         public override bool ShowFooter => true;
 
         public override bool? ApplyModTrackAdjustments => false;
 
-        private Container mainContent = null!;
+        [Cached]
+        private readonly OverlayColourProvider colourProvider = new OverlayColourProvider(OverlayColourScheme.Aquamarine);
+
+        private InverseScalingDrawSizePreservingFillContainer rootContainer = null!;
+        private OnlinePlayScreenWaveContainer waves = null!;
+
+        private PoolSelector poolSelector = null!;
+        private CircularContainer avatarContainer = null!;
         private CloudVisualisation cloud = null!;
-        private RatingDistributionGraph ratingGraph = null!;
-        private FillFlowContainer resultPanelContainer = null!;
+        private SideContainer leftStats = null!;
+        private SideContainer rightStats = null!;
+        private TierProgressBar tierProgressBar = null!;
 
         [Resolved]
         private OsuColour colours { get; set; } = null!;
@@ -102,8 +113,6 @@ namespace osu.Game.Screens.OnlinePlay.Matchmaking.Queue
 
         private int? userRating;
 
-        private GridContainer mainGrid = null!;
-
         private IBindable<bool> isConnected = null!;
 
         public ScreenQueue(MatchmakingPoolType poolType)
@@ -112,276 +121,227 @@ namespace osu.Game.Screens.OnlinePlay.Matchmaking.Queue
         }
 
         [BackgroundDependencyLoader]
-        private void load(AudioManager audio, IAPIProvider api)
+        private void load(AudioManager audio, IAPIProvider api, OsuColour colours, TextureStore textures)
         {
             enqueueSample = audio.Samples.Get(@"Multiplayer/Matchmaking/enqueue");
             matchFoundSample = audio.Samples.Get(@"Multiplayer/Matchmaking/match-found");
 
-            LinkFlowContainer experimentalText;
-
-            InternalChild = new InverseScalingDrawSizePreservingFillContainer
+            InternalChild = rootContainer = new InverseScalingDrawSizePreservingFillContainer
             {
                 RelativeSizeAxes = Axes.Both,
                 Children = new Drawable[]
                 {
                     waitingLoop = new DrawableSample(audio.Samples.Get(@"Multiplayer/Matchmaking/waiting-loop")),
                     new GlobalScrollAdjustsVolume(),
-                    mainGrid = new GridContainer
+                    waves = new OnlinePlayScreenWaveContainer
                     {
                         RelativeSizeAxes = Axes.Both,
-                        Padding = new MarginPadding
+                        Children = new Drawable[]
                         {
-                            Horizontal = 20,
-                            Top = 20,
-                            Bottom = ScreenFooter.HEIGHT + 20
-                        },
-                        RowDimensions =
-                        [
-                            new Dimension(),
-                            new Dimension(GridSizeMode.Relative, RuntimeInfo.IsMobile ? 0.55f : 0.35f)
-                        ],
-                        Content = new[]
-                        {
-                            new Drawable[]
+                            new Sprite
                             {
-                                new Container
-                                {
-                                    RelativeSizeAxes = Axes.Both,
-                                    Padding = new MarginPadding(5),
-                                    Child = new Container
-                                    {
-                                        RelativeSizeAxes = Axes.Both,
-                                        CornerRadius = 10f,
-                                        Masking = true,
-                                        Children = new Drawable[]
-                                        {
-                                            new PanelBackground(),
-                                            new GridContainer
-                                            {
-                                                RelativeSizeAxes = Axes.Both,
-                                                Padding = new MarginPadding(10),
-                                                RowDimensions =
-                                                [
-                                                    new Dimension(GridSizeMode.AutoSize)
-                                                ],
-                                                Content = new[]
-                                                {
-                                                    new Drawable[]
-                                                    {
-                                                        new FillFlowContainer
-                                                        {
-                                                            RelativeSizeAxes = Axes.X,
-                                                            AutoSizeAxes = Axes.Y,
-                                                            Children = new Drawable[]
-                                                            {
-                                                                new Container
-                                                                {
-                                                                    RelativeSizeAxes = Axes.X,
-                                                                    AutoSizeAxes = Axes.Y,
-                                                                    Masking = true,
-                                                                    CornerRadius = 5,
-                                                                    Children = new Drawable[]
-                                                                    {
-                                                                        new Box
-                                                                        {
-                                                                            RelativeSizeAxes = Axes.Both,
-                                                                            Colour = colours.Yellow
-                                                                        },
-                                                                        experimentalText = new ExperimentalLinkFlowContainer
-                                                                        {
-                                                                            RelativeSizeAxes = Axes.X,
-                                                                            AutoSizeAxes = Axes.Y,
-                                                                            Padding = new MarginPadding(10),
-                                                                        }
-                                                                    }
-                                                                },
-                                                                new QueueSectionHeader("Queued players")
-                                                            }
-                                                        }
-                                                    },
-                                                    new Drawable[]
-                                                    {
-                                                        new Container
-                                                        {
-                                                            RelativeSizeAxes = Axes.Both,
-                                                            Children = new Drawable[]
-                                                            {
-                                                                cloud = new CloudVisualisation
-                                                                {
-                                                                    Anchor = Anchor.Centre,
-                                                                    Origin = Anchor.Centre,
-                                                                    RelativeSizeAxes = Axes.Both,
-                                                                    Size = new Vector2(0.6f)
-                                                                },
-                                                                new MatchmakingAvatar(api.LocalUser.Value, true)
-                                                                {
-                                                                    Anchor = Anchor.Centre,
-                                                                    Origin = Anchor.Centre,
-                                                                    Scale = new Vector2(3),
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                },
-                                new Container
-                                {
-                                    RelativeSizeAxes = Axes.Both,
-                                    Padding = new MarginPadding(5),
-                                    Child = new Container
-                                    {
-                                        RelativeSizeAxes = Axes.Both,
-                                        CornerRadius = 10f,
-                                        Masking = true,
-                                        Children = new Drawable[]
-                                        {
-                                            new PanelBackground(),
-                                            new GridContainer
-                                            {
-                                                RelativeSizeAxes = Axes.Both,
-                                                Padding = new MarginPadding(10) { Bottom = 0 },
-                                                RowDimensions =
-                                                [
-                                                    new Dimension(GridSizeMode.AutoSize)
-                                                ],
-                                                Content = new[]
-                                                {
-                                                    new Drawable[] { new QueueSectionHeader("Recent Matches") },
-                                                    new Drawable[]
-                                                    {
-                                                        new OsuScrollContainer(Direction.Vertical)
-                                                        {
-                                                            RelativeSizeAxes = Axes.Both,
-                                                            ScrollbarOverlapsContent = false,
-                                                            Child = resultPanelContainer = new FillFlowContainer
-                                                            {
-                                                                RelativeSizeAxes = Axes.X,
-                                                                AutoSizeAxes = Axes.Y,
-                                                                Spacing = new Vector2(10),
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
+                                RelativeSizeAxes = Axes.Both,
+                                Texture = textures.Get("Backgrounds/bg1"),
+                                Anchor = Anchor.Centre,
+                                Origin = Anchor.Centre,
+                                FillMode = FillMode.Fill,
+                                Colour = colourProvider.Dark2
                             },
-                            new Drawable[]
+                            new Container
                             {
-                                new Container
+                                RelativeSizeAxes = Axes.X,
+                                Height = 100,
+                                Anchor = Anchor.TopCentre,
+                                Origin = Anchor.TopCentre,
+                                Padding = new MarginPadding { Top = -12 },
+                                Child = new Container
                                 {
                                     RelativeSizeAxes = Axes.Both,
-                                    Padding = new MarginPadding(5),
-                                    Child = new Container
+                                    Masking = true,
+                                    CornerRadius = 12,
+                                    Children = new Drawable[]
                                     {
-                                        RelativeSizeAxes = Axes.Both,
-                                        CornerRadius = 10f,
-                                        Masking = true,
-                                        Children = new Drawable[]
+                                        new Box
                                         {
-                                            new PanelBackground(),
-                                            new GridContainer
-                                            {
-                                                RelativeSizeAxes = Axes.Both,
-                                                Padding = new MarginPadding(10),
-                                                RowDimensions =
-                                                [
-                                                    new Dimension(GridSizeMode.AutoSize)
-                                                ],
-                                                Content = new[]
-                                                {
-                                                    new Drawable[] { new QueueSectionHeader("Queues") },
-                                                    new Drawable[]
-                                                    {
-                                                        mainContent = new Container
-                                                        {
-                                                            RelativeSizeAxes = Axes.Both,
-                                                            Padding = new MarginPadding(20),
-                                                            Alpha = 0,
-                                                        },
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                },
-                                new Container
-                                {
-                                    RelativeSizeAxes = Axes.Both,
-                                    Padding = new MarginPadding(5),
-                                    Child = new Container
-                                    {
-                                        RelativeSizeAxes = Axes.Both,
-                                        CornerRadius = 10f,
-                                        Masking = true,
-                                        Children = new Drawable[]
+                                            RelativeSizeAxes = Axes.Both,
+                                            Colour = Colour4.Black.Opacity(0.5f),
+                                        },
+                                        new GridContainer
                                         {
-                                            new PanelBackground(),
-                                            new GridContainer
+                                            RelativeSizeAxes = Axes.Both,
+                                            Padding = new MarginPadding { Top = 12, Horizontal = 60 },
+                                            ColumnDimensions = new[]
                                             {
-                                                RelativeSizeAxes = Axes.Both,
-                                                Padding = new MarginPadding(10),
-                                                RowDimensions =
-                                                [
-                                                    new Dimension(GridSizeMode.AutoSize)
-                                                ],
-                                                Content = new[]
+                                                new Dimension(),
+                                                new Dimension(GridSizeMode.AutoSize),
+                                                new Dimension(),
+                                            },
+                                            Content = new[]
+                                            {
+                                                new Drawable?[]
                                                 {
-                                                    new Drawable[] { new QueueSectionHeader("Ratings") },
-                                                    new Drawable[]
+                                                    new FillFlowContainer
                                                     {
-                                                        new Container
+                                                        AutoSizeAxes = Axes.Both,
+                                                        Anchor = Anchor.CentreLeft,
+                                                        Origin = Anchor.CentreLeft,
+                                                        Spacing = new Vector2(6),
+                                                        Direction = FillDirection.Horizontal,
+                                                        Children = new Drawable[]
                                                         {
-                                                            RelativeSizeAxes = Axes.Both,
-                                                            Padding = new MarginPadding { Top = -10 },
-                                                            Child = ratingGraph = new RatingDistributionGraph
+                                                            new OsuSpriteText
                                                             {
-                                                                RelativeSizeAxes = Axes.Both,
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+                                                                Anchor = Anchor.CentreLeft,
+                                                                Origin = Anchor.CentreLeft,
+                                                                Font = OsuFont.TorusAlternate.With(size: 24),
+                                                                Text = "Ranked Play",
+                                                            },
+                                                            new OsuSpriteText
+                                                            {
+                                                                Anchor = Anchor.CentreLeft,
+                                                                Origin = Anchor.CentreLeft,
+                                                                Font = OsuFont.TorusAlternate.With(size: 24),
+                                                                Colour = colours.Yellow,
+                                                                Text = "·",
+                                                            },
+                                                            new OsuSpriteText
+                                                            {
+                                                                Anchor = Anchor.CentreLeft,
+                                                                Origin = Anchor.CentreLeft,
+                                                                Font = OsuFont.TorusAlternate.With(size: 24),
+                                                                Colour = colours.Yellow,
+                                                                Text = "Lobby",
+                                                            },
+                                                        },
+                                                    },
+                                                    poolSelector = new PoolSelector
+                                                    {
+                                                        Anchor = Anchor.Centre,
+                                                        Origin = Anchor.Centre,
+                                                    },
+                                                    new OsuSpriteText
+                                                    {
+                                                        Anchor = Anchor.CentreRight,
+                                                        Origin = Anchor.CentreRight,
+                                                        Font = OsuFont.TorusAlternate.With(size: 24),
+                                                        Text = "Season 1",
+                                                    },
+                                                },
+                                            },
+                                        },
+                                    },
+                                },
+                            },
+                            cloud = new CloudVisualisation
+                            {
+                                Size = new Vector2(400),
+                                Anchor = Anchor.Centre,
+                                Origin = Anchor.Centre,
+                                Alpha = 0,
+                            },
+                            leftStats = new SideContainer
+                            {
+                                Anchor = Anchor.CentreLeft,
+                                Origin = Anchor.CentreLeft,
+                                Children = new Drawable[]
+                                {
+                                    new SideContainer.RatingStatistic
+                                    {
+                                        Label = "Current Rating",
+                                        Value = 1337,
+                                        Ruleset = { BindTarget = ruleset },
+                                    },
+                                    new SideContainer.RatingStatistic
+                                    {
+                                        Label = "Peak Rating",
+                                        Value = 1834,
+                                        Ruleset = { BindTarget = ruleset },
+                                    },
+                                },
+                            },
+                            rightStats = new SideContainer
+                            {
+                                Anchor = Anchor.CentreRight,
+                                Origin = Anchor.CentreRight,
+                                Children = new Drawable[]
+                                {
+                                    new SideContainer.Statistic
+                                    {
+                                        Label = "Online Players",
+                                        Value = 412.ToLocalisableString(@"N0"),
+                                    },
+                                    new SideContainer.Statistic
+                                    {
+                                        Label = "Ongoing Sessions",
+                                        Value = 1834.ToLocalisableString(@"N0"),
+                                    },
+                                },
+                            },
+                            tierProgressBar = new TierProgressBar
+                            {
+                                RelativeSizeAxes = Axes.X,
+                                Anchor = Anchor.BottomCentre,
+                                Origin = Anchor.BottomCentre,
+                                Padding = new MarginPadding { Horizontal = 20, Bottom = ScreenFooter.HEIGHT + 40 },
+                                AlwaysPresent = true,
+                                Divisions =
+                                [
+                                    new RankedPlayDivision { Tier = Tier.Bronze, Division = Division.I, DisplayName = "Bronze I", StartRating = 600, EndRating = 699 },
+                                    new RankedPlayDivision { Tier = Tier.Bronze, Division = Division.II, DisplayName = "Bronze II", StartRating = 700, EndRating = 799 },
+                                    new RankedPlayDivision { Tier = Tier.Bronze, Division = Division.III, DisplayName = "Bronze III", StartRating = 800, EndRating = 899 },
+                                    new RankedPlayDivision { Tier = Tier.Silver, Division = Division.I, DisplayName = "Silver I", StartRating = 900, EndRating = 999 },
+                                    new RankedPlayDivision { Tier = Tier.Silver, Division = Division.II, DisplayName = "Silver II", StartRating = 1000, EndRating = 1099 },
+                                    new RankedPlayDivision { Tier = Tier.Silver, Division = Division.III, DisplayName = "Silver III", StartRating = 1100, EndRating = 1199 },
+                                    new RankedPlayDivision { Tier = Tier.Gold, Division = Division.I, DisplayName = "Gold I", StartRating = 1200, EndRating = 1299 },
+                                    new RankedPlayDivision { Tier = Tier.Gold, Division = Division.II, DisplayName = "Gold II", StartRating = 1300, EndRating = 1399 },
+                                    new RankedPlayDivision { Tier = Tier.Gold, Division = Division.III, DisplayName = "Gold III", StartRating = 1400, EndRating = 1499 },
+                                    new RankedPlayDivision { Tier = Tier.Platinum, Division = Division.I, DisplayName = "Platinum I", StartRating = 1500, EndRating = 1599 },
+                                    new RankedPlayDivision { Tier = Tier.Platinum, Division = Division.II, DisplayName = "Platinum II", StartRating = 1600, EndRating = 1699 },
+                                    new RankedPlayDivision { Tier = Tier.Platinum, Division = Division.III, DisplayName = "Platinum III", StartRating = 1700, EndRating = 1799 },
+                                    new RankedPlayDivision { Tier = Tier.Rhodium, Division = Division.I, DisplayName = "Rhodium I", StartRating = 1800, EndRating = 1899 },
+                                    new RankedPlayDivision { Tier = Tier.Rhodium, Division = Division.II, DisplayName = "Rhodium II", StartRating = 1900, EndRating = 1999 },
+                                    new RankedPlayDivision { Tier = Tier.Rhodium, Division = Division.III, DisplayName = "Rhodium III", StartRating = 2000, EndRating = 2099 },
+                                    new RankedPlayDivision { Tier = Tier.Radiant, Division = Division.I, DisplayName = "Radiant I", StartRating = 2100, EndRating = 2199 },
+                                    new RankedPlayDivision { Tier = Tier.Radiant, Division = Division.II, DisplayName = "Radiant II", StartRating = 2200, EndRating = 2299 },
+                                    new RankedPlayDivision { Tier = Tier.Radiant, Division = Division.III, DisplayName = "Radiant III", StartRating = 2300, EndRating = 2399 },
+                                    new RankedPlayDivision { Tier = Tier.Lustrous, DisplayName = "Lustrous", StartRating = 2400, EndRating = 3000 },
+                                ],
+                            },
+                        },
+                    },
+                    avatarContainer = new CircularContainer
+                    {
+                        Anchor = Anchor.Centre,
+                        Origin = Anchor.Centre,
+                        Masking = true,
+                        Size = new Vector2(90),
+                        Alpha = 0,
+                        Child = new ClickableAvatar(api.LocalUser.Value, true)
+                        {
+                            RelativeSizeAxes = Axes.Both,
+                        },
+                    },
+                },
             };
-
-            experimentalText.AddIcon(FontAwesome.Solid.Lightbulb);
-            experimentalText.AddText(@" ");
-            experimentalText.AddText("This system is under continuous and rapid development.\n", sp => sp.Font = sp.Font.With(weight: FontWeight.SemiBold));
-            experimentalText.AddText("Follow the ");
-            experimentalText.AddLink("changelog", @"https://osu.ppy.sh/community/forums/topics/2202736", sp => sp.Font = sp.Font.With(weight: FontWeight.SemiBold));
-            experimentalText.AddText(" and provide any ");
-            experimentalText.AddLink("feedback", @"https://osu.ppy.sh/community/forums/topics/2198397", sp => sp.Font = sp.Font.With(weight: FontWeight.SemiBold));
-            experimentalText.AddText(" on the osu! forums!");
         }
 
         protected override void LoadComplete()
         {
             base.LoadComplete();
 
-            int delay = 0;
+            // int delay = 0;
 
-            foreach (var a in mainGrid.Content)
-            {
-                foreach (var d in a)
-                {
-                    d.FadeOut()
-                     .Delay(delay)
-                     .FadeInFromZero(500, Easing.OutQuint);
-
-                    delay += 100;
-                }
-            }
+            // foreach (var a in mainGrid.Content)
+            // {
+            //     foreach (var d in a)
+            //     {
+            //         d.FadeOut()
+            //          .Delay(delay)
+            //          .FadeInFromZero(500, Easing.OutQuint);
+            //
+            //         delay += 100;
+            //     }
+            // }
 
             client.MatchmakingLobbyStatusChanged += onMatchmakingLobbyStatusChanged;
 
@@ -437,41 +397,13 @@ namespace osu.Game.Screens.OnlinePlay.Matchmaking.Queue
             if (status.UserRating != null)
                 userRating = status.UserRating;
 
-            ratingGraph.SetData(status.RatingDistribution, userRating);
+            if (tierProgressBar.IsPresent && userRating != null)
+                tierProgressBar.UpdateRating(userRating.Value);
 
-            loadRecentMatches(status.RecentMatches.OfType<RankedPlayRoomState>().ToArray()).FireAndForget();
+            // ratingGraph.SetData(status.RatingDistribution, userRating);
+            //
+            // loadRecentMatches(status.RecentMatches.OfType<RankedPlayRoomState>().ToArray()).FireAndForget();
         });
-
-        private int historyInsertOrder;
-
-        private async Task loadRecentMatches(RankedPlayRoomState[] matches)
-        {
-            // matches initial API response.
-            const int max_panels = 50;
-
-            await userLookupCache.GetUsersAsync(matches.SelectMany(m => m.Users.Keys).ToArray()).ConfigureAwait(false);
-
-            Scheduler.Add(() =>
-            {
-                foreach (var match in matches)
-                {
-                    resultPanelContainer.Insert(historyInsertOrder--, new RankedPlayMatchPanel(match)
-                    {
-                        RelativeSizeAxes = Axes.X,
-                        Width = 0.48f
-                    });
-                }
-
-                if (resultPanelContainer.Any(c => c.Position != Vector2.Zero))
-                {
-                    resultPanelContainer.LayoutDuration = 400;
-                    resultPanelContainer.LayoutEasing = Easing.OutQuint;
-                }
-
-                while (resultPanelContainer.Count > max_panels)
-                    resultPanelContainer.Children.First().RemoveAndDisposeImmediately();
-            });
-        }
 
         private void refreshLobbyData()
         {
@@ -491,22 +423,67 @@ namespace osu.Game.Screens.OnlinePlay.Matchmaking.Queue
 
         private void clearLobbyData()
         {
-            resultPanelContainer.Clear();
-            resultPanelContainer.LayoutDuration = 0;
-            userRating = null;
-            ratingGraph.SetData([], null);
-
-            cloud.Users = Array.Empty<APIUser>();
+            // resultPanelContainer.Clear();
+            // resultPanelContainer.LayoutDuration = 0;
+            // userRating = null;
+            // ratingGraph.SetData([], null);
+            //
+            // cloud.Users = Array.Empty<APIUser>();
         }
 
         public override void OnEntering(ScreenTransitionEvent e)
         {
             base.OnEntering(e);
 
+            waves.Show();
             queue.SearchInForeground();
 
-            using (BeginDelayedSequence(800))
-                Schedule(() => SetState(currentState.Value));
+            tierProgressBar.MoveToY(200);
+
+            avatarContainer
+                .Delay(400)
+                .ScaleTo(0.5f)
+                .FadeIn(500, new CubicBezierEasingFunction(0, 0, 0, 1))
+                .ScaleTo(1, 1100, new CubicBezierEasingFunction(0.2, 2.7, 0.42, 1))
+                .Then()
+                .Schedule(() =>
+                {
+                    rootContainer.Remove(avatarContainer, false);
+                    waves.Add(avatarContainer);
+                });
+
+            Scheduler.AddDelayed(() =>
+            {
+                poolSelector.AvailablePools.BindTo(availablePools);
+                poolSelector.SelectedPool.BindTo(selectedPool);
+
+                tierProgressBar.MoveToY(0, 400, new CubicBezierEasingFunction(0, 0, 0, 1));
+
+                leftStats.Show();
+                rightStats.Show();
+                cloud.Show();
+
+                if (userRating != null)
+                {
+                    tierProgressBar.UpdateRating(userRating.Value, true);
+                    tierProgressBar.Show();
+                }
+
+                SetState(currentState.Value);
+            }, WaveContainer.APPEAR_DURATION - 200);
+
+            Scheduler.AddDelayed(() =>
+            {
+                foreach ((var stat, int i) in leftStats.Select((d, i) => (d, i)))
+                {
+                    stat.Delay(i * 50).FadeIn(400, new CubicBezierEasingFunction(0.5, 0, 0.5, 1));
+                }
+
+                foreach ((var stat, int i) in rightStats.Select((d, i) => (d, i)))
+                {
+                    stat.Delay(100 + i * 50).FadeIn(400, new CubicBezierEasingFunction(0.5, 0, 0.5, 1));
+                }
+            }, WaveContainer.APPEAR_DURATION);
         }
 
         public override void OnResuming(ScreenTransitionEvent e)
@@ -530,6 +507,9 @@ namespace osu.Game.Screens.OnlinePlay.Matchmaking.Queue
             if (base.OnExiting(e))
                 return true;
 
+            waves.Hide();
+            this.Delay(WaveContainer.DISAPPEAR_DURATION).FadeOut();
+
             stopWaitingLoopPlayback();
 
             switch (currentState.Value)
@@ -552,202 +532,202 @@ namespace osu.Game.Screens.OnlinePlay.Matchmaking.Queue
 
         public void SetState(MatchmakingScreenState newState)
         {
-            mainContent.FadeInFromZero(500, Easing.OutQuint);
-            mainContent.Clear();
-
+            // mainContent.FadeInFromZero(500, Easing.OutQuint);
+            // mainContent.Clear();
+            //
             startLoopPlaybackDelegate?.Cancel();
             stopWaitingLoopPlayback();
 
-            pushScreenDelegate?.Cancel();
-            pushScreenDelegate = null;
-
+            // pushScreenDelegate?.Cancel();
+            // pushScreenDelegate = null;
+            //
             switch (newState)
             {
                 case MatchmakingScreenState.Idle:
-                    LinkFlowContainer duelHint;
-
-                    mainContent.Child = new FillFlowContainer
-                    {
-                        Anchor = Anchor.Centre,
-                        Origin = Anchor.Centre,
-                        RelativeSizeAxes = Axes.X,
-                        AutoSizeAxes = Axes.Y,
-                        Direction = FillDirection.Vertical,
-                        Spacing = new Vector2(10),
-                        Children = new Drawable[]
-                        {
-                            new PoolSelector
-                            {
-                                Anchor = Anchor.TopCentre,
-                                Origin = Anchor.TopCentre,
-                                AvailablePools = { BindTarget = availablePools },
-                                SelectedPool = { BindTarget = selectedPool }
-                            },
-                            new BeginQueueingButton
-                            {
-                                DarkerColour = colours.Blue2,
-                                LighterColour = colours.Blue1,
-                                Anchor = Anchor.TopCentre,
-                                Origin = Anchor.TopCentre,
-                                Width = 200,
-                                Enabled = { BindTarget = isConnected },
-                                SelectedPool = { BindTarget = selectedPool },
-                                Action = () =>
-                                {
-                                    Debug.Assert(selectedPool.Value != null);
-                                    queue.JoinQueue(selectedPool.Value);
-                                },
-                                Text = "Begin queueing",
-                            },
-                            duelHint = new LinkFlowContainer
-                            {
-                                TextAnchor = Anchor.TopCentre,
-                                RelativeSizeAxes = Axes.X,
-                                AutoSizeAxes = Axes.Y,
-                            }
-                        }
-                    };
-
-                    duelHint.AddText("Open the ");
-                    duelHint.AddLink("dashboard", () => dashboardOverlay?.Show());
-                    duelHint.AddText(" to duel another player!");
+                    // LinkFlowContainer duelHint;
+                    //
+                    // mainContent.Child = new FillFlowContainer
+                    // {
+                    //     Anchor = Anchor.Centre,
+                    //     Origin = Anchor.Centre,
+                    //     RelativeSizeAxes = Axes.X,
+                    //     AutoSizeAxes = Axes.Y,
+                    //     Direction = FillDirection.Vertical,
+                    //     Spacing = new Vector2(10),
+                    //     Children = new Drawable[]
+                    //     {
+                    //         new PoolSelector
+                    //         {
+                    //             Anchor = Anchor.TopCentre,
+                    //             Origin = Anchor.TopCentre,
+                    //             AvailablePools = { BindTarget = availablePools },
+                    //             SelectedPool = { BindTarget = selectedPool }
+                    //         },
+                    //         new BeginQueueingButton
+                    //         {
+                    //             DarkerColour = colours.Blue2,
+                    //             LighterColour = colours.Blue1,
+                    //             Anchor = Anchor.TopCentre,
+                    //             Origin = Anchor.TopCentre,
+                    //             Width = 200,
+                    //             Enabled = { BindTarget = isConnected },
+                    //             SelectedPool = { BindTarget = selectedPool },
+                    //             Action = () =>
+                    //             {
+                    //                 Debug.Assert(selectedPool.Value != null);
+                    //                 queue.JoinQueue(selectedPool.Value);
+                    //             },
+                    //             Text = "Begin queueing",
+                    //         },
+                    //         duelHint = new LinkFlowContainer
+                    //         {
+                    //             TextAnchor = Anchor.TopCentre,
+                    //             RelativeSizeAxes = Axes.X,
+                    //             AutoSizeAxes = Axes.Y,
+                    //         }
+                    //     }
+                    // };
+                    //
+                    // duelHint.AddText("Open the ");
+                    // duelHint.AddLink("dashboard", () => dashboardOverlay?.Show());
+                    // duelHint.AddText(" to duel another player!");
 
                     break;
 
                 case MatchmakingScreenState.Queueing:
-                    mainContent.Child = new FillFlowContainer
-                    {
-                        Anchor = Anchor.Centre,
-                        Origin = Anchor.Centre,
-                        AutoSizeAxes = Axes.Both,
-                        Direction = FillDirection.Vertical,
-                        Spacing = new Vector2(15),
-                        Children = new Drawable[]
-                        {
-                            new FillFlowContainer
-                            {
-                                Anchor = Anchor.Centre,
-                                Origin = Anchor.Centre,
-                                AutoSizeAxes = Axes.Both,
-                                Direction = FillDirection.Vertical,
-                                Spacing = new Vector2(0, 4),
-                                Children = new Drawable[]
-                                {
-                                    new OsuSpriteText
-                                    {
-                                        Anchor = Anchor.TopCentre,
-                                        Origin = Anchor.TopCentre,
-                                        Text = "Searching for a match...",
-                                        Font = OsuFont.Style.Title,
-                                    },
-                                    new QueueTimerText
-                                    {
-                                        Anchor = Anchor.TopCentre,
-                                        Origin = Anchor.TopCentre,
-                                        Font = OsuFont.Style.Body,
-                                    }
-                                }
-                            },
-                            new LoadingSpinner
-                            {
-                                State = { Value = Visibility.Visible },
-                            },
-                            new ShearedButton
-                            {
-                                DarkerColour = colours.Red3,
-                                LighterColour = colours.Red4,
-                                Anchor = Anchor.Centre,
-                                Origin = Anchor.Centre,
-                                Width = 200,
-                                Text = "Stop queueing",
-                                Action = () => queue.LeaveQueue()
-                            }
-                        }
-                    };
-
-                    enqueueSample?.Play();
-                    startLoopPlaybackDelegate = Scheduler.AddDelayed(startWaitingLoopPlayback, 2000);
+                    // mainContent.Child = new FillFlowContainer
+                    // {
+                    //     Anchor = Anchor.Centre,
+                    //     Origin = Anchor.Centre,
+                    //     AutoSizeAxes = Axes.Both,
+                    //     Direction = FillDirection.Vertical,
+                    //     Spacing = new Vector2(15),
+                    //     Children = new Drawable[]
+                    //     {
+                    //         new FillFlowContainer
+                    //         {
+                    //             Anchor = Anchor.Centre,
+                    //             Origin = Anchor.Centre,
+                    //             AutoSizeAxes = Axes.Both,
+                    //             Direction = FillDirection.Vertical,
+                    //             Spacing = new Vector2(0, 4),
+                    //             Children = new Drawable[]
+                    //             {
+                    //                 new OsuSpriteText
+                    //                 {
+                    //                     Anchor = Anchor.TopCentre,
+                    //                     Origin = Anchor.TopCentre,
+                    //                     Text = "Searching for a match...",
+                    //                     Font = OsuFont.Style.Title,
+                    //                 },
+                    //                 new QueueTimerText
+                    //                 {
+                    //                     Anchor = Anchor.TopCentre,
+                    //                     Origin = Anchor.TopCentre,
+                    //                     Font = OsuFont.Style.Body,
+                    //                 }
+                    //             }
+                    //         },
+                    //         new LoadingSpinner
+                    //         {
+                    //             State = { Value = Visibility.Visible },
+                    //         },
+                    //         new ShearedButton
+                    //         {
+                    //             DarkerColour = colours.Red3,
+                    //             LighterColour = colours.Red4,
+                    //             Anchor = Anchor.Centre,
+                    //             Origin = Anchor.Centre,
+                    //             Width = 200,
+                    //             Text = "Stop queueing",
+                    //             Action = () => queue.LeaveQueue()
+                    //         }
+                    //     }
+                    // };
+                    //
+                    // enqueueSample?.Play();
+                    // startLoopPlaybackDelegate = Scheduler.AddDelayed(startWaitingLoopPlayback, 2000);
                     break;
 
                 case MatchmakingScreenState.PendingAccept:
-                    client.MatchmakingAcceptInvitation().FireAndForget();
-                    SetState(MatchmakingScreenState.AcceptedWaitingForRoom);
-
-                    matchFoundSample?.Play();
-                    music.DuckMomentarily(1250);
+                    // client.MatchmakingAcceptInvitation().FireAndForget();
+                    // SetState(MatchmakingScreenState.AcceptedWaitingForRoom);
+                    //
+                    // matchFoundSample?.Play();
+                    // music.DuckMomentarily(1250);
                     break;
 
                 case MatchmakingScreenState.AcceptedWaitingForRoom:
-                    mainContent.Child = new FillFlowContainer
-                    {
-                        Anchor = Anchor.Centre,
-                        Origin = Anchor.Centre,
-                        AutoSizeAxes = Axes.Both,
-                        Direction = FillDirection.Vertical,
-                        Spacing = new Vector2(20),
-                        Children = new Drawable[]
-                        {
-                            new OsuSpriteText
-                            {
-                                Anchor = Anchor.Centre,
-                                Origin = Anchor.Centre,
-                                Text = "Waiting for opponents...",
-                                Font = OsuFont.GetFont(size: 32, weight: FontWeight.Light, typeface: Typeface.TorusAlternate),
-                            },
-                            new LoadingSpinner
-                            {
-                                State = { Value = Visibility.Visible },
-                            },
-                        }
-                    };
-
-                    startWaitingLoopPlayback();
+                    // mainContent.Child = new FillFlowContainer
+                    // {
+                    //     Anchor = Anchor.Centre,
+                    //     Origin = Anchor.Centre,
+                    //     AutoSizeAxes = Axes.Both,
+                    //     Direction = FillDirection.Vertical,
+                    //     Spacing = new Vector2(20),
+                    //     Children = new Drawable[]
+                    //     {
+                    //         new OsuSpriteText
+                    //         {
+                    //             Anchor = Anchor.Centre,
+                    //             Origin = Anchor.Centre,
+                    //             Text = "Waiting for opponents...",
+                    //             Font = OsuFont.GetFont(size: 32, weight: FontWeight.Light, typeface: Typeface.TorusAlternate),
+                    //         },
+                    //         new LoadingSpinner
+                    //         {
+                    //             State = { Value = Visibility.Visible },
+                    //         },
+                    //     }
+                    // };
+                    //
+                    // startWaitingLoopPlayback();
                     break;
 
                 case MatchmakingScreenState.InRoom:
-                    // room received, show users and transition to next screen.
-                    mainContent.Child = new FillFlowContainer
-                    {
-                        Anchor = Anchor.Centre,
-                        Origin = Anchor.Centre,
-                        AutoSizeAxes = Axes.Both,
-                        Direction = FillDirection.Vertical,
-                        Spacing = new Vector2(20),
-                        Children = new Drawable[]
-                        {
-                            new OsuSpriteText
-                            {
-                                Anchor = Anchor.Centre,
-                                Origin = Anchor.Centre,
-                                Text = "Good luck!",
-                                Font = OsuFont.GetFont(size: 32, weight: FontWeight.Light, typeface: Typeface.TorusAlternate),
-                            },
-                        }
-                    };
-
-                    using (BeginDelayedSequence(2000))
-                    {
-                        pushScreenDelegate = Schedule(() =>
-                        {
-                            if (client.Room == null)
-                            {
-                                Logger.Log("Room became null, returning to idle");
-                                SetState(MatchmakingScreenState.Idle);
-                                return;
-                            }
-
-                            switch (poolType)
-                            {
-                                case MatchmakingPoolType.QuickPlay:
-                                    this.Push(new ScreenMatchmaking(client.Room));
-                                    break;
-
-                                case MatchmakingPoolType.RankedPlay:
-                                    this.Push(new RankedPlayScreen(client.Room));
-                                    break;
-                            }
-                        });
-                    }
+                    // // room received, show users and transition to next screen.
+                    // mainContent.Child = new FillFlowContainer
+                    // {
+                    //     Anchor = Anchor.Centre,
+                    //     Origin = Anchor.Centre,
+                    //     AutoSizeAxes = Axes.Both,
+                    //     Direction = FillDirection.Vertical,
+                    //     Spacing = new Vector2(20),
+                    //     Children = new Drawable[]
+                    //     {
+                    //         new OsuSpriteText
+                    //         {
+                    //             Anchor = Anchor.Centre,
+                    //             Origin = Anchor.Centre,
+                    //             Text = "Good luck!",
+                    //             Font = OsuFont.GetFont(size: 32, weight: FontWeight.Light, typeface: Typeface.TorusAlternate),
+                    //         },
+                    //     }
+                    // };
+                    //
+                    // using (BeginDelayedSequence(2000))
+                    // {
+                    //     pushScreenDelegate = Schedule(() =>
+                    //     {
+                    //         if (client.Room == null)
+                    //         {
+                    //             Logger.Log("Room became null, returning to idle");
+                    //             SetState(MatchmakingScreenState.Idle);
+                    //             return;
+                    //         }
+                    //
+                    //         switch (poolType)
+                    //         {
+                    //             case MatchmakingPoolType.QuickPlay:
+                    //                 this.Push(new ScreenMatchmaking(client.Room));
+                    //                 break;
+                    //
+                    //             case MatchmakingPoolType.RankedPlay:
+                    //                 this.Push(new RankedPlayScreen(client.Room));
+                    //                 break;
+                    //         }
+                    //     });
+                    // }
 
                     break;
 
@@ -839,13 +819,13 @@ namespace osu.Game.Screens.OnlinePlay.Matchmaking.Queue
             }
         }
 
-        private partial class SelectionButton : ShearedButton, IKeyBindingHandler<GlobalAction>
+        private partial class SelectionButton : RoundedButton, IKeyBindingHandler<GlobalAction>
         {
             public bool OnPressed(KeyBindingPressEvent<GlobalAction> e)
             {
                 if (e.Action == GlobalAction.Select && !e.Repeat)
                 {
-                    TriggerClickWithSound();
+                    TriggerClick();
                     return true;
                 }
 
@@ -854,37 +834,6 @@ namespace osu.Game.Screens.OnlinePlay.Matchmaking.Queue
 
             public void OnReleased(KeyBindingReleaseEvent<GlobalAction> e)
             {
-            }
-        }
-
-        private partial class ExperimentalLinkFlowContainer : LinkFlowContainer
-        {
-            public ExperimentalLinkFlowContainer()
-                : base(sp => sp.Colour = Color4.Black)
-            {
-            }
-
-            protected override DrawableLinkCompiler CreateLinkCompiler(ITextPart textPart)
-                => new LinkCompiler(textPart);
-
-            private partial class LinkCompiler : DrawableLinkCompiler
-            {
-                public LinkCompiler(ITextPart part)
-                    : base(part)
-                {
-                }
-
-                public LinkCompiler(IEnumerable<Drawable> parts)
-                    : base(parts)
-                {
-                }
-
-                [BackgroundDependencyLoader]
-                private void load(OsuColour colours)
-                {
-                    IdleColour = colours.YellowDarker;
-                    HoverColour = Color4.Black;
-                }
             }
         }
 

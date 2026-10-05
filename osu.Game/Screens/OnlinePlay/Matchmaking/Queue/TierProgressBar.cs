@@ -27,6 +27,8 @@ namespace osu.Game.Screens.OnlinePlay.Matchmaking.Queue
 
         private readonly Bindable<RankedPlayDivision> currentDivision = new Bindable<RankedPlayDivision>();
 
+        private float usableWidth => Math.Clamp(DrawWidth - Padding.Left - Padding.Right, 0, float.MaxValue);
+
         public required List<RankedPlayDivision> Divisions
         {
             private get;
@@ -188,7 +190,7 @@ namespace osu.Game.Screens.OnlinePlay.Matchmaking.Queue
         {
             // We want the amount of displayed divisions/segments to remain consistent
             // regardless of screen dimensions.
-            widthPerRating = DrawWidth / displayed_rating_range;
+            widthPerRating = usableWidth / displayed_rating_range;
             segmentContainer.X = calculateContainerOffset(currentRatingInstantaneous.Value);
 
             foreach (var segment in segmentContainer)
@@ -207,7 +209,7 @@ namespace osu.Game.Screens.OnlinePlay.Matchmaking.Queue
 
             nextDivDisplay.Flipped = true;
             nextDivDisplay.Anchor = Anchor.TopLeft;
-            nextDivDisplay.X = (currentRating.Value - lowerBound) * widthPerRating + segmentContainer.Padding.Left;
+            nextDivDisplay.X = (currentRating.Value - lowerBound) * widthPerRating;
         }
 
         protected override void PopIn()
@@ -227,7 +229,7 @@ namespace osu.Game.Screens.OnlinePlay.Matchmaking.Queue
             float filledBarLength = (rating - lowerBound) * widthPerRating;
             float totalBarLength = (upperBound - lowerBound) * widthPerRating + segmentContainer.Padding.TotalHorizontal;
 
-            return Math.Clamp(-filledBarLength + DrawWidth / 2, -totalBarLength + DrawWidth, 0);
+            return Math.Clamp(-filledBarLength + usableWidth / 2, -totalBarLength + usableWidth, 0);
         }
     }
 }

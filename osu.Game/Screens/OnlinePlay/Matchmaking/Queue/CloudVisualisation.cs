@@ -66,7 +66,7 @@ namespace osu.Game.Screens.OnlinePlay.Matchmaking.Queue
                 {
                     Anchor = Anchor.Centre,
                     Origin = Anchor.Centre,
-                    RelativeSizeAxes = Axes.X,
+                    RelativeSizeAxes = Axes.Y,
                 },
             };
 

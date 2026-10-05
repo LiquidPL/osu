@@ -28,7 +28,7 @@ namespace osu.Game.Tests.Visual.Matchmaking
             AddStep("join room", () => JoinRoom(CreateDefaultRoom(MatchType.Matchmaking)));
             WaitForJoined();
 
-            AddStep("load screen", () => LoadScreen(new ScreenIntro(MatchmakingPoolType.QuickPlay)));
+            AddStep("load screen", () => LoadScreen(new ScreenQueue(MatchmakingPoolType.RankedPlay)));
             AddUntilStep("wait for queue screen", () => queueScreen?.IsLoaded == true);
 
             AddStep("send status update", () =>
@@ -40,7 +40,7 @@ namespace osu.Game.Tests.Visual.Matchmaking
                 {
                     UsersInQueue = Enumerable.Range(1, 10).ToArray(),
                     RatingDistribution = Enumerable.Range(0, 24).Select(i => (400 + i * 100, (int)Math.Round(generateCount(400 + i * 100, 1600, 400, 7200)))).ToArray(),
-                    UserRating = Random.Shared.Next(400, 2800),
+                    UserRating = Random.Shared.Next(600, 2800),
                     RecentMatches = Enumerable.Range(1, 10).Select(_ => (MatchRoomState)new RankedPlayRoomState
                     {
                         Users =
