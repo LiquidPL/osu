@@ -29,7 +29,7 @@ namespace osu.Game.Tests.Visual.Matchmaking
                 RelativeSizeAxes = Axes.Both,
                 Anchor = Anchor.Centre,
                 Origin = Anchor.Centre,
-                Child = new DrawSizePreservingFillContainer
+                Child = new Container
                 {
                     RelativeSizeAxes = Axes.Both,
                     Children = new Drawable[]
@@ -44,7 +44,7 @@ namespace osu.Game.Tests.Visual.Matchmaking
                         visualisation = new QueueVisualisation
                         {
                             RelativeSizeAxes = Axes.Both,
-                            SafeRadius = 150,
+                            SafeRadius = 0.25f,
                         },
                     },
                 },
@@ -54,7 +54,6 @@ namespace osu.Game.Tests.Visual.Matchmaking
         [Test]
         public void TestBasic()
         {
-            AddSliderStep("width", 0.5f, 1f, 1f, value => container.Width = value);
             AddStep("refresh users", () =>
             {
                 var testUsers = Enumerable.Range(0, 50).Select(_ => new APIUser

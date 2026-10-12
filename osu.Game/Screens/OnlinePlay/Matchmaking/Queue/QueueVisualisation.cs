@@ -9,7 +9,6 @@ using osu.Framework.Audio.Sample;
 using osu.Framework.Bindables;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
-using osu.Framework.Layout;
 using osu.Framework.Utils;
 using osu.Game.Online.API.Requests.Responses;
 using osu.Game.Screens.OnlinePlay.Matchmaking.Match;
@@ -31,9 +30,6 @@ namespace osu.Game.Screens.OnlinePlay.Matchmaking.Queue
         private APIUser[] users = [];
         private readonly Container usersContainer;
 
-        private readonly LayoutValue layout = new LayoutValue(Invalidation.DrawSize);
-
-        private readonly Bindable<float> safeRadiusRelative = new Bindable<float>();
         private readonly Bindable<double?> lastSamplePlayback = new Bindable<double?>();
 
         /// <summary>
@@ -58,9 +54,8 @@ namespace osu.Game.Screens.OnlinePlay.Matchmaking.Queue
             foreach (var u in usersContainer)
                 u.Delay(RNG.Next(0, 1000)).FadeOut(500).Expire();
 
-            LoadComponentsAsync(users.Select(u => new MovingAvatar(u)
+            LoadComponentsAsync(users.Select(u => new MovingAvatar(u, SafeRadius)
             {
-                SafeRadius = { BindTarget = safeRadiusRelative },
                 LastSamplePlayback = { BindTarget = lastSamplePlayback },
             }), avatars =>
             {
@@ -85,8 +80,6 @@ namespace osu.Game.Screens.OnlinePlay.Matchmaking.Queue
                     RelativeSizeAxes = Axes.Y,
                 },
             };
-
-            AddLayout(layout);
         }
 
         protected override void LoadComplete()
@@ -96,36 +89,28 @@ namespace osu.Game.Screens.OnlinePlay.Matchmaking.Queue
             refresh();
         }
 
-        protected override void Update()
-        {
-            base.Update();
-
-            if (!layout.IsValid)
-            {
-                safeRadiusRelative.Value = (SafeRadius + MatchmakingAvatar.SIZE.Y * max_scale / 2 + safe_radius_padding) / usersContainer.DrawHeight;
-                layout.Validate();
-            }
-        }
-
         public partial class MovingAvatar : MatchmakingAvatar
         {
             private float angle;
             private float radius;
 
+            private readonly float safeRadius;
+
             private float targetScale;
             private float targetAlpha;
 
             public readonly Bindable<double?> LastSamplePlayback = new Bindable<double?>();
-            public readonly IBindable<float> SafeRadius = new Bindable<float>();
 
             private const int num_appear_samples = 6;
             private Sample? playerAppearSample;
 
-            public MovingAvatar(APIUser apiUser)
+            public MovingAvatar(APIUser apiUser, float safeRadius)
                 : base(apiUser)
             {
                 RelativePositionAxes = Axes.Both;
                 Scale = new Vector2(2);
+
+                this.safeRadius = safeRadius;
 
                 Anchor = Anchor.Centre;
                 Origin = Anchor.Centre;
@@ -144,7 +129,7 @@ namespace osu.Game.Screens.OnlinePlay.Matchmaking.Queue
                 updateParams();
 
                 angle = RNG.NextSingle(0f, MathF.Tau);
-                radius = RNG.NextSingle(SafeRadius.Value, 0.5f);
+                radius = RNG.NextSingle(safeRadius, 0.5f);
 
                 Scale = new Vector2(targetScale);
 
@@ -152,8 +137,6 @@ namespace osu.Game.Screens.OnlinePlay.Matchmaking.Queue
                 int appearDelay = RNG.Next(0, 1000);
                 this.Delay(appearDelay).FadeTo(targetAlpha, 2000, Easing.OutQuint);
                 Scheduler.AddDelayed(playAppearSample, appearDelay);
-
-                SafeRadius.BindValueChanged(e => radius -= e.OldValue - e.NewValue);
             }
 
             private void updateParams()
