@@ -1,6 +1,8 @@
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+using System.Collections.Generic;
+using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using osu.Game.Online.RankedPlay;
@@ -32,5 +34,10 @@ namespace osu.Game.Online.API.Requests.Responses
             : $"{Tier} {Division}";
 
         public int Width => EndRating - StartRating + 1;
+    }
+
+    public static class RankedPlayDivisionExtensions
+    {
+        public static APIRankedPlayDivision? GetDivisionForRating(this IEnumerable<APIRankedPlayDivision> divisions, int rating) => divisions.FirstOrDefault(d => d.StartRating <= rating && d.EndRating >= rating);
     }
 }

@@ -910,11 +910,11 @@ namespace osu.Game.Tests.Visual.Multiplayer
         {
             return Task.FromResult<MatchmakingPool[]>(
             [
-                new MatchmakingPool { Id = 0, RulesetId = 0 },
-                new MatchmakingPool { Id = 1, RulesetId = 1 },
-                new MatchmakingPool { Id = 2, RulesetId = 2 },
-                new MatchmakingPool { Id = 3, RulesetId = 3, Variant = 4 },
-                new MatchmakingPool { Id = 4, RulesetId = 3, Variant = 7 },
+                new MatchmakingPool { Id = 0, RulesetId = 0, Name = "Season 1" },
+                new MatchmakingPool { Id = 1, RulesetId = 1, Name = "Season 1" },
+                new MatchmakingPool { Id = 2, RulesetId = 2, Name = "Season 1" },
+                new MatchmakingPool { Id = 3, RulesetId = 3, Variant = 4, Name = "Season 1" },
+                new MatchmakingPool { Id = 4, RulesetId = 3, Variant = 7, Name = "Season 1" },
             ]);
         }
 

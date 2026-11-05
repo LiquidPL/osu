@@ -15,7 +15,6 @@ using osu.Game.Online.Multiplayer.MatchTypes.RankedPlay;
 using osu.Game.Online.Rooms;
 using osu.Game.Overlays;
 using osu.Game.Overlays.Notifications;
-using osu.Game.Screens.OnlinePlay.Matchmaking.Intro;
 using osu.Game.Screens.OnlinePlay.Matchmaking.Match;
 using osu.Game.Screens.OnlinePlay.Matchmaking.Queue;
 using osu.Game.Tests.Visual.Multiplayer;
@@ -40,7 +39,7 @@ namespace osu.Game.Tests.Visual.Matchmaking
         {
             base.SetUpSteps();
 
-            AddStep("load screen", () => LoadScreen(new ScreenIntro(MatchmakingPoolType.QuickPlay)));
+            AddStep("load screen", () => LoadScreen(new ScreenQueue(MatchmakingPoolType.QuickPlay)));
             AddUntilStep("wait for queue screen", () => queueScreen?.IsLoaded == true);
 
             AddStep("send status update", () =>
@@ -52,7 +51,9 @@ namespace osu.Game.Tests.Visual.Matchmaking
                 {
                     UsersInQueue = Enumerable.Range(1, 10).ToArray(),
                     RatingDistribution = Enumerable.Range(0, 24).Select(i => (400 + i * 100, (int)Math.Round(generateCount(400 + i * 100, 1600, 400, 7200)))).ToArray(),
-                    UserRating = Random.Shared.Next(400, 2800),
+                    UserRating = Random.Shared.Next(600, 2800),
+                    UserSigma = 50,
+                    UserRank = Random.Shared.Next(1, 500),
                     RecentMatches = Enumerable.Range(1, 10).Select(_ => (MatchRoomState)new RankedPlayRoomState
                     {
                         Users =
