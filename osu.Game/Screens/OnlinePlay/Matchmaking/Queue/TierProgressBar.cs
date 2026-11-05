@@ -21,13 +21,6 @@ namespace osu.Game.Screens.OnlinePlay.Matchmaking.Queue
 {
     public partial class TierProgressBar : Container
     {
-        private static readonly IEasingFunction rating_change = new CubicBezierEasingFunction(0, 0, 0, 1);
-
-        private static readonly IEasingFunction flow_move = new CubicBezierEasingFunction(0.15, 0.6, 0, 1);
-        private static readonly IEasingFunction flow_move_entering = new CubicBezierEasingFunction(0, 0, 0, 1);
-
-        private static readonly IEasingFunction next_div_display_fade = new CubicBezierEasingFunction(0.5, 0, 0.5, 1);
-
         private readonly BindableInt currentRating = new BindableInt();
         private readonly BindableFloat currentRatingInstantaneous = new BindableFloat();
 
@@ -158,6 +151,33 @@ namespace osu.Game.Screens.OnlinePlay.Matchmaking.Queue
             updateSegmentSizes();
         }
 
+        private void updateSegmentSizes()
+        {
+            // We want the amount of displayed divisions/segments to remain consistent
+            // regardless of screen dimensions.
+            widthPerRating = segmentWindow.DrawWidth / displayed_rating_range;
+            segmentFlow.X = calculateContainerOffset(currentRating.Value);
+
+            foreach (var segment in segmentFlow)
+                segment.Width = segment.Division.Width * widthPerRating;
+        }
+
+        private float calculateContainerOffset(float rating)
+        {
+            float filledBarLength = (rating - lowerBound) * widthPerRating + segmentFlow.Padding.Left;
+            float totalBarLength = (upperBound - lowerBound) * widthPerRating + segmentFlow.Padding.TotalHorizontal;
+
+            return Math.Clamp(-filledBarLength + segmentWindow.DrawWidth / 2, -totalBarLength + segmentWindow.DrawWidth, 0);
+        }
+
+        private const int rating_change_duration = 1500;
+        private static readonly IEasingFunction rating_change_easing = new CubicBezierEasingFunction(0, 0, 0, 1);
+
+        private static readonly IEasingFunction flow_move = new CubicBezierEasingFunction(0.15, 0.6, 0, 1);
+        private static readonly IEasingFunction flow_move_entering = new CubicBezierEasingFunction(0, 0, 0, 1);
+
+        private static readonly IEasingFunction next_div_display_fade = new CubicBezierEasingFunction(0.5, 0, 0.5, 1);
+
         public void SetRating(int newValue, bool entering = false)
         {
             if (newValue < lowerBound || newValue > upperBound)
@@ -181,62 +201,44 @@ namespace osu.Game.Screens.OnlinePlay.Matchmaking.Queue
             //       once it exists.
             currentDivision.Value = Divisions.First(d => d.StartRating <= currentRating.Value && d.EndRating >= currentRating.Value);
 
-            int duration = entering ? 1500 : 1600;
             IEasingFunction flowEasing = entering
                 ? flow_move_entering
                 : flow_move;
 
-            this.TransformBindableTo(currentRatingInstantaneous, currentRating.Value, duration, rating_change);
-            segmentFlow.MoveToX(calculateContainerOffset(currentRating.Value), duration, flowEasing);
+            this.TransformBindableTo(currentRatingInstantaneous, currentRating.Value, rating_change_duration, rating_change_easing);
+            segmentFlow.MoveToX(calculateContainerOffset(currentRating.Value), rating_change_duration, flowEasing);
 
-            var nextDivDisplayTransform = nextDivDisplay.FadeOut(entering ? 0 : 100, next_div_display_fade);
-
-            if (currentDivision.Value?.Tier != RankingTier.Lustrous)
-            {
-                nextDivDisplayTransform
-                    .Then()
-                    .Schedule(() =>
-                    {
-                        updateToNextDivPosition();
-                        nextDivDisplay.UpdateLabel();
-                    })
-                    .Delay(duration - 600)
-                    .FadeIn(200, next_div_display_fade);
-            }
-        }
-
-        private void updateSegmentSizes()
-        {
-            // We want the amount of displayed divisions/segments to remain consistent
-            // regardless of screen dimensions.
-            widthPerRating = segmentWindow.DrawWidth / displayed_rating_range;
-            segmentFlow.X = calculateContainerOffset(currentRating.Value);
-
-            foreach (var segment in segmentFlow)
-                segment.Width = segment.Division.Width * widthPerRating;
+            updateToNextDivPosition();
         }
 
         private void updateToNextDivPosition()
         {
-            if (currentRating.Value - lowerBound > displayed_rating_range / 2)
-            {
-                nextDivDisplay.Flipped = false;
-                nextDivDisplay.Anchor = Anchor.TopCentre;
-                nextDivDisplay.X = 0;
+            var nextDivDisplayTransform = nextDivDisplay.FadeOut(100, next_div_display_fade);
+
+            if (currentDivision.Value?.Tier == RankingTier.Lustrous)
                 return;
-            }
 
-            nextDivDisplay.Flipped = true;
-            nextDivDisplay.Anchor = Anchor.TopLeft;
-            nextDivDisplay.X = (currentRating.Value - lowerBound) * widthPerRating + segmentFlow.Padding.Left;
-        }
+            nextDivDisplayTransform
+                .Then()
+                .Schedule(() =>
+                {
+                    if (currentRating.Value - lowerBound > displayed_rating_range / 2)
+                    {
+                        nextDivDisplay.Flipped = false;
+                        nextDivDisplay.Anchor = Anchor.TopCentre;
+                        nextDivDisplay.X = 0;
+                    }
+                    else
+                    {
+                        nextDivDisplay.Flipped = true;
+                        nextDivDisplay.Anchor = Anchor.TopLeft;
+                        nextDivDisplay.X = (currentRating.Value - lowerBound) * widthPerRating + segmentFlow.Padding.Left;
+                    }
 
-        private float calculateContainerOffset(float rating)
-        {
-            float filledBarLength = (rating - lowerBound) * widthPerRating + segmentFlow.Padding.Left;
-            float totalBarLength = (upperBound - lowerBound) * widthPerRating + segmentFlow.Padding.TotalHorizontal;
-
-            return Math.Clamp(-filledBarLength + segmentWindow.DrawWidth / 2, -totalBarLength + segmentWindow.DrawWidth, 0);
+                    nextDivDisplay.UpdateLabel();
+                })
+                .Delay(rating_change_duration - 600)
+                .FadeIn(200, next_div_display_fade);
         }
     }
 }
