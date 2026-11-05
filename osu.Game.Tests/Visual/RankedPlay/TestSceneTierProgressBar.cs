@@ -77,11 +77,7 @@ namespace osu.Game.Tests.Visual.RankedPlay
             float originalLength = 0;
 
             AddStep("set to 2500", () => progressBar.SetRating(2500));
-            AddStep("skip animation", () =>
-            {
-                progressBar.FinishTransforms();
-                progressBar.ChildrenOfType<FillFlowContainer<TierProgressBar.DivisionSegment>>().Single().FinishTransforms();
-            });
+            AddWaitStep("wait for animation to complete", 10);
             AddStep("save length", () => originalLength = getLastDivisionLength());
             AddStep("update divisions", () => progressBar.Divisions = new List<APIRankedPlayDivision>(DIVISIONS)
             {
@@ -90,6 +86,21 @@ namespace osu.Game.Tests.Visual.RankedPlay
             AddAssert("last division is shorter", () => getLastDivisionLength() / originalLength, () => Is.EqualTo(0.5).Within(0.001));
 
             float getLastDivisionLength() => this.ChildrenOfType<TierProgressBar.DivisionSegment>().Last().DrawWidth;
+        }
+
+        [Test]
+        public void TestNoDivisions()
+        {
+            AddStep("set to 1500", () => progressBar.SetRating(1500));
+            AddWaitStep("wait for animation to complete", 10);
+            AddStep("set empty divisions list", () => progressBar.Divisions = []);
+            AddAssert("no segments", () => progressBar.ChildrenOfType<TierProgressBar.DivisionSegment>().Any(), () => Is.False);
+            AddAssert("next division display is not present", () => progressBar.ChildrenOfType<TierProgressBar.RatingToNextDivisionDisplay>().Single().IsPresent, () => Is.False);
+
+            AddStep("create new bar with no divisions", () => Child = createProgressBar().With(b => b.Divisions = []));
+            AddUntilStep("wait for load", () => progressBar.IsLoaded);
+            AddAssert("no segments", () => progressBar.ChildrenOfType<TierProgressBar.DivisionSegment>().Any(), () => Is.False);
+            AddAssert("next division display is not present", () => progressBar.ChildrenOfType<TierProgressBar.RatingToNextDivisionDisplay>().Single().IsPresent, () => Is.False);
         }
 
         private TierProgressBar createProgressBar() => progressBar = new TierProgressBar

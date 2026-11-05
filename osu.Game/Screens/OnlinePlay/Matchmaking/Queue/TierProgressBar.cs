@@ -26,7 +26,7 @@ namespace osu.Game.Screens.OnlinePlay.Matchmaking.Queue
 
         private readonly Bindable<APIRankedPlayDivision> currentDivision = new Bindable<APIRankedPlayDivision>();
 
-        public required IReadOnlyList<APIRankedPlayDivision> Divisions
+        public IReadOnlyList<APIRankedPlayDivision> Divisions
         {
             private get;
             set
@@ -34,27 +34,35 @@ namespace osu.Game.Screens.OnlinePlay.Matchmaking.Queue
                 if (Transforms.Any() || segmentFlow.Transforms.Any())
                     throw new InvalidOperationException("Cannot set divisions while a transform is in progress.");
 
+                foreach ((var a, var b) in value.Zip(value.Skip(1), Tuple.Create))
+                {
+                    if (a.EndRating < a.StartRating || b.StartRating < a.EndRating || b.EndRating < b.StartRating)
+                        throw new ArgumentException("Ratings across the entire division list must be monotonically increasing.");
+                }
+
                 field = value;
 
-                lowerBound = field.Min(d => d.StartRating);
-                upperBound = field.Max(d => d.EndRating);
+                segmentFlow.Clear();
+                nextDivDisplay.Alpha = 0;
+
+                if (!field.Any())
+                    return;
 
                 currentRatingInstantaneous.Value = currentRating.Value = Math.Clamp(currentRating.Value, lowerBound, upperBound);
-
-                segmentFlow.Clear();
                 segmentFlow.AddRange(field.Select(d => new DivisionSegment(d)
                 {
                     CurrentRating = { BindTarget = currentRatingInstantaneous },
                 }));
 
-                updateSegmentSizes();
+                if (IsLoaded)
+                    updateSegmentSizes();
             }
-        }
+        } = [];
+
+        private int lowerBound => Divisions[0].StartRating;
+        private int upperBound => Divisions[^1].EndRating;
 
         private const int displayed_rating_range = 800;
-
-        private int lowerBound;
-        private int upperBound;
 
         /// <summary>
         /// The width currently being taken up by a single rating point.
@@ -153,6 +161,9 @@ namespace osu.Game.Screens.OnlinePlay.Matchmaking.Queue
 
         private void updateSegmentSizes()
         {
+            if (!Divisions.Any())
+                return;
+
             // We want the amount of displayed divisions/segments to remain consistent
             // regardless of screen dimensions.
             widthPerRating = segmentWindow.DrawWidth / displayed_rating_range;
@@ -180,6 +191,9 @@ namespace osu.Game.Screens.OnlinePlay.Matchmaking.Queue
 
         public void SetRating(int newValue, bool entering = false)
         {
+            if (!Divisions.Any())
+                return;
+
             if (newValue < lowerBound || newValue > upperBound)
                 throw new ArgumentException("Rating is outside the division bounds.");
 
@@ -222,20 +236,23 @@ namespace osu.Game.Screens.OnlinePlay.Matchmaking.Queue
                 .Then()
                 .Schedule(() =>
                 {
+                    nextDivDisplay.UpdateLabel();
+
+                    float safeRating = nextDivDisplay.DrawWidth / widthPerRating;
+
+                    nextDivDisplay.Flipped = currentRating.Value - lowerBound < safeRating;
+
                     if (currentRating.Value - lowerBound > displayed_rating_range / 2)
                     {
-                        nextDivDisplay.Flipped = false;
                         nextDivDisplay.Anchor = Anchor.TopCentre;
                         nextDivDisplay.X = 0;
                     }
                     else
                     {
-                        nextDivDisplay.Flipped = true;
+                        // nextDivDisplay.Flipped = true;
                         nextDivDisplay.Anchor = Anchor.TopLeft;
                         nextDivDisplay.X = (currentRating.Value - lowerBound) * widthPerRating + segmentFlow.Padding.Left;
                     }
-
-                    nextDivDisplay.UpdateLabel();
                 })
                 .Delay(rating_change_duration - 600)
                 .FadeIn(200, next_div_display_fade);

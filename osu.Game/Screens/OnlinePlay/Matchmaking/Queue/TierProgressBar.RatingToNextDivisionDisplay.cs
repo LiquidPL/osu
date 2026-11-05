@@ -22,7 +22,7 @@ namespace osu.Game.Screens.OnlinePlay.Matchmaking.Queue
 {
     public partial class TierProgressBar
     {
-        private partial class RatingToNextDivisionDisplay : CompositeDrawable
+        public partial class RatingToNextDivisionDisplay : CompositeDrawable
         {
             public bool Flipped
             {
@@ -78,7 +78,7 @@ namespace osu.Game.Screens.OnlinePlay.Matchmaking.Queue
             private void load(TextureStore textures)
             {
                 background.Texture = textures.Get(@"Online/RankedPlay/to-next-division-display");
-                background.Texture.ScaleAdjust = 4; // needs to be set for the nine-slice scaling to work correctly
+                background.Texture.ScaleAdjust = 2; // needs to be set for the nine-slice scaling to work correctly
             }
 
             public void UpdateLabel()
