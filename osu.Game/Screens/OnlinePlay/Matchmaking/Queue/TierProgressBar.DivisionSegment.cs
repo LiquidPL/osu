@@ -13,11 +13,60 @@ using osu.Game.Graphics.Sprites;
 using osu.Game.Online.API.Requests.Responses;
 using osu.Game.Scoring;
 using osu.Game.Screens.OnlinePlay.Matchmaking.RankedPlay.Components;
+using osuTK.Graphics;
 
 namespace osu.Game.Screens.OnlinePlay.Matchmaking.Queue
 {
     public partial class TierProgressBar
     {
+        public partial class EmptyDivisionSegment : CompositeDrawable
+        {
+            protected readonly Container BackgroundContainer;
+            private readonly Container ForegroundContainer;
+
+            public EmptyDivisionSegment()
+            {
+                AutoSizeAxes = Axes.Y;
+                Padding = new MarginPadding { Horizontal = 2 };
+
+                InternalChildren = new Drawable[]
+                {
+                    new Container
+                    {
+                        Y = 15,
+                        RelativeSizeAxes = Axes.X,
+                        Height = 8,
+                        Masking = true,
+                        CornerRadius = 4,
+                        Children = new Drawable[]
+                        {
+                            BackgroundContainer = new Container
+                            {
+                                RelativeSizeAxes = Axes.Both,
+                                Child = new Box
+                                {
+                                    RelativeSizeAxes = Axes.Both,
+                                    Colour = Color4.Black,
+                                },
+                                Alpha = 0.25f,
+                            },
+                            // new Container
+                            // {
+                            //     RelativeSizeAxes = Axes.Both,
+                            //     Masking = true,
+                            //     CornerRadius = 4,
+                            //     Child = new Box
+                            //     {
+                            //         RelativeSizeAxes = Axes.Both,
+                            //         Colour = getColour(),
+                            //     },
+                            // },
+                        },
+                    },
+                };
+            }
+        }
+
         public partial class DivisionSegment : CompositeDrawable
         {
             public readonly APIRankedPlayDivision Division;

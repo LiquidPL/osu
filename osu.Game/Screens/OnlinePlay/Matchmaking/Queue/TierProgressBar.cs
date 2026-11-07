@@ -13,6 +13,7 @@ using osu.Framework.Graphics.Shapes;
 using osu.Framework.Graphics.Transforms;
 using osu.Framework.Layout;
 using osu.Game.Online.API.Requests.Responses;
+using osu.Game.Online.RankedPlay;
 using osu.Game.Overlays;
 using osu.Game.Scoring;
 using osuTK;
@@ -42,6 +43,15 @@ namespace osu.Game.Screens.OnlinePlay.Matchmaking.Queue
                 currentRatingInstantaneous.Value = currentRating.Value = Math.Clamp(currentRating.Value, lowerBound, upperBound);
 
                 segmentFlow.Clear();
+
+                segmentFlow.AddRange(Enumerable.Range(0, 6).Select(i => new DivisionSegment(new APIRankedPlayDivision
+                {
+                    Tier = RankingTier.Silver,
+                    Division = RankedPlayDivision.I,
+                    StartRating = i * 100,
+                    EndRating = (i + 1) * 100 - 1,
+                })));
+
                 segmentFlow.AddRange(field.Select(d => new DivisionSegment(d)
                 {
                     CurrentRating = { BindTarget = currentRatingInstantaneous },
@@ -123,8 +133,9 @@ namespace osu.Game.Screens.OnlinePlay.Matchmaking.Queue
                 {
                     CurrentRating = { BindTarget = currentRating },
                     CurrentDivision = { BindTarget = currentDivision },
+                    Anchor = Anchor.TopCentre,
                     Alpha = 0,
-                    Flipped = true,
+                    // Flipped = true,
                 },
             };
 
@@ -205,7 +216,7 @@ namespace osu.Game.Screens.OnlinePlay.Matchmaking.Queue
                 .Then()
                 .Schedule(() =>
                 {
-                    updateToNextDivPosition();
+                    // updateToNextDivPosition();
                     nextDivDisplay.UpdateLabel();
                 })
                 .Delay(1000)
@@ -240,8 +251,8 @@ namespace osu.Game.Screens.OnlinePlay.Matchmaking.Queue
 
         private float calculateContainerOffset(float rating)
         {
-            float filledBarLength = (rating - lowerBound) * widthPerRating + segmentFlow.Padding.Left;
-            float totalBarLength = (upperBound - lowerBound) * widthPerRating + segmentFlow.Padding.TotalHorizontal;
+            float filledBarLength = rating * widthPerRating + segmentFlow.Padding.Left;
+            float totalBarLength = upperBound * widthPerRating + segmentFlow.Padding.TotalHorizontal;
 
             return Math.Clamp(-filledBarLength + segmentWindow.DrawWidth / 2, -totalBarLength + segmentWindow.DrawWidth, 0);
         }
