@@ -81,7 +81,7 @@ namespace osu.Game.Tests.Visual.RankedPlay
             AddStep("skip animation", () =>
             {
                 progressBar.FinishTransforms();
-                progressBar.ChildrenOfType<FillFlowContainer<TierProgressBar.DivisionSegment>>().Single().FinishTransforms();
+                progressBar.ChildrenOfType<FillFlowContainer<TierProgressBar.Segment>>().Single().FinishTransforms();
             });
             AddStep("save length", () => originalLength = getLastDivisionLength());
             AddStep("update divisions", () => progressBar.Divisions = new List<APIRankedPlayDivision>(DIVISIONS)
@@ -90,7 +90,7 @@ namespace osu.Game.Tests.Visual.RankedPlay
             });
             AddAssert("last division is shorter", () => getLastDivisionLength() / originalLength, () => Is.EqualTo(0.5).Within(0.001));
 
-            float getLastDivisionLength() => this.ChildrenOfType<TierProgressBar.DivisionSegment>().Last().DrawWidth;
+            float getLastDivisionLength() => this.ChildrenOfType<TierProgressBar.Segment>().Last().DrawWidth;
         }
 
         private TierProgressBar createProgressBar(int? initialRating = null) => progressBar = new TierProgressBar

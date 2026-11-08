@@ -35,19 +35,9 @@ namespace osu.Game.Screens.OnlinePlay.Matchmaking.Queue
                     throw new InvalidOperationException("Cannot set divisions while a transform is in progress.");
 
                 field = value;
-
-                lowerBound = field.Min(d => d.StartRating);
-                upperBound = field.Max(d => d.EndRating);
-
                 currentRatingInstantaneous.Value = currentRating.Value = Math.Clamp(currentRating.Value, lowerBound, upperBound);
 
-                segmentFlow.Clear();
-                segmentFlow.AddRange(field.Select(d => new DivisionSegment(d)
-                {
-                    CurrentRating = { BindTarget = currentRatingInstantaneous },
-                }));
-
-                updateSegmentSizes();
+                createSegments();
             }
         }
 
@@ -63,8 +53,8 @@ namespace osu.Game.Screens.OnlinePlay.Matchmaking.Queue
 
         private const int displayed_rating_range = 800;
 
-        private int lowerBound;
-        private int upperBound;
+        private int lowerBound => Divisions[0].StartRating;
+        private int upperBound => Divisions[^1].EndRating;
 
         /// <summary>
         /// The width currently being taken up by a single rating point.
@@ -73,7 +63,7 @@ namespace osu.Game.Screens.OnlinePlay.Matchmaking.Queue
 
         private readonly Box background;
         private readonly Container segmentWindow;
-        private readonly FillFlowContainer<DivisionSegment> segmentFlow;
+        private readonly FillFlowContainer<Segment> segmentFlow;
         private readonly RatingToNextDivisionDisplay nextDivDisplay;
 
         private readonly LayoutValue layout = new LayoutValue(Invalidation.DrawSize);
@@ -111,7 +101,7 @@ namespace osu.Game.Screens.OnlinePlay.Matchmaking.Queue
                     Masking = true,
                     Children = new Drawable[]
                     {
-                        segmentFlow = new FillFlowContainer<DivisionSegment>
+                        segmentFlow = new FillFlowContainer<Segment>
                         {
                             AutoSizeAxes = Axes.Both,
                             Padding = new MarginPadding { Top = 10, Horizontal = 2 },
@@ -123,12 +113,53 @@ namespace osu.Game.Screens.OnlinePlay.Matchmaking.Queue
                 {
                     CurrentRating = { BindTarget = currentRating },
                     CurrentDivision = { BindTarget = currentDivision },
+                    Anchor = Anchor.TopCentre,
                     Alpha = 0,
-                    Flipped = true,
                 },
             };
 
             AddLayout(layout);
+        }
+
+        private void createSegments()
+        {
+            segmentFlow.Clear();
+
+            segmentFlow.Add(new Segment(lowerBound - 1));
+            segmentFlow.AddRange(Divisions.Where(d => d.Tier != RankingTier.Lustrous).Select(d => new DivisionSegment(d)
+            {
+                CurrentRating = { BindTarget = currentRatingInstantaneous },
+            }));
+            // segmentFlow.Add(new DivisionSegment(new APIRankedPlayDivision
+            // {
+            //     Tier = RankingTier.Lustrous,
+            //     StartRating = Divisions[^1].StartRating,
+            //     // Increase the upper bound of the highest division beyond the
+            //     EndRating = Divisions[^1].EndRating + 2000,
+            // })
+            // {
+            //     CurrentRating = { BindTarget = currentRatingInstantaneous },
+            // });
+
+            int lastDivisionLower = Divisions[^1].StartRating;
+            int lastDivisionUpper = Divisions[^1].EndRating + 2000;
+
+            while (lastDivisionLower < lastDivisionUpper)
+            {
+                segmentFlow.Add(new DivisionSegment(new APIRankedPlayDivision
+                {
+                    Tier = RankingTier.Lustrous,
+                    StartRating = lastDivisionLower,
+                    EndRating = Math.Min(lastDivisionLower + 99, lastDivisionUpper),
+                })
+                {
+                    CurrentRating = { BindTarget = currentRatingInstantaneous },
+                });
+
+                lastDivisionLower += 100;
+            }
+
+            updateSegmentSizes();
         }
 
         [BackgroundDependencyLoader]
@@ -205,7 +236,6 @@ namespace osu.Game.Screens.OnlinePlay.Matchmaking.Queue
                 .Then()
                 .Schedule(() =>
                 {
-                    updateToNextDivPosition();
                     nextDivDisplay.UpdateLabel();
                 })
                 .Delay(1000)
@@ -220,30 +250,14 @@ namespace osu.Game.Screens.OnlinePlay.Matchmaking.Queue
             segmentFlow.X = calculateContainerOffset(currentRating.Value);
 
             foreach (var segment in segmentFlow)
-                segment.Width = segment.Division.Width * widthPerRating;
-        }
-
-        private void updateToNextDivPosition()
-        {
-            if (currentRating.Value - lowerBound > displayed_rating_range / 2)
-            {
-                nextDivDisplay.Flipped = false;
-                nextDivDisplay.Anchor = Anchor.TopCentre;
-                nextDivDisplay.X = 0;
-                return;
-            }
-
-            nextDivDisplay.Flipped = true;
-            nextDivDisplay.Anchor = Anchor.TopLeft;
-            nextDivDisplay.X = (currentRating.Value - lowerBound) * widthPerRating + segmentFlow.Padding.Left;
+                segment.Width = segment.RatingWidth * widthPerRating;
         }
 
         private float calculateContainerOffset(float rating)
         {
-            float filledBarLength = (rating - lowerBound) * widthPerRating + segmentFlow.Padding.Left;
-            float totalBarLength = (upperBound - lowerBound) * widthPerRating + segmentFlow.Padding.TotalHorizontal;
+            float filledBarLength = rating * widthPerRating + segmentFlow.Padding.Left;
 
-            return Math.Clamp(-filledBarLength + segmentWindow.DrawWidth / 2, -totalBarLength + segmentWindow.DrawWidth, 0);
+            return -filledBarLength + segmentWindow.DrawWidth / 2;
         }
     }
 }
