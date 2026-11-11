@@ -10,6 +10,16 @@ namespace osu.Game.Localisation
         private const string prefix = @"osu.Game.Resources.Localisation.MatchmakingQueue";
 
         /// <summary>
+        /// "Find Match"
+        /// </summary>
+        public static LocalisableString FindMatch => new TranslatableString(getKey(@"find_match"), "Find Match");
+
+        /// <summary>
+        /// "Stop Searching"
+        /// </summary>
+        public static LocalisableString StopSearching => new TranslatableString(getKey(@"stop_searching"), "Stop Searching");
+
+        /// <summary>
         /// "Searching..."
         /// </summary>
         public static LocalisableString Searching => new TranslatableString(getKey(@"searching"), @"Searching...");

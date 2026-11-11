@@ -8,6 +8,7 @@ using NUnit.Framework;
 using osu.Framework.Allocation;
 using osu.Framework.Extensions;
 using osu.Framework.Testing;
+using osu.Game.Graphics.UserInterface;
 using osu.Game.Online.API.Requests.Responses;
 using osu.Game.Online.Matchmaking;
 using osu.Game.Online.Multiplayer;
@@ -15,7 +16,6 @@ using osu.Game.Online.Multiplayer.MatchTypes.RankedPlay;
 using osu.Game.Online.Rooms;
 using osu.Game.Overlays;
 using osu.Game.Overlays.Notifications;
-using osu.Game.Screens.OnlinePlay.Matchmaking.Intro;
 using osu.Game.Screens.OnlinePlay.Matchmaking.Match;
 using osu.Game.Screens.OnlinePlay.Matchmaking.Queue;
 using osu.Game.Tests.Visual.Multiplayer;
@@ -40,34 +40,15 @@ namespace osu.Game.Tests.Visual.Matchmaking
         {
             base.SetUpSteps();
 
-            AddStep("load screen", () => LoadScreen(new ScreenIntro(MatchmakingPoolType.QuickPlay)));
+            AddStep("load screen", () => LoadScreen(new ScreenQueue(MatchmakingPoolType.QuickPlay)));
             AddUntilStep("wait for queue screen", () => queueScreen?.IsLoaded == true);
-
-            AddStep("send status update", () =>
-            {
-                int userId1 = Random.Shared.Next(1, 11);
-                int userId2 = Random.Shared.GetItems(Enumerable.Range(1, 10).Except([userId1]).ToArray(), 1).Single();
-
-                MultiplayerClient.MatchmakingLobbyStatusChanged(new MatchmakingLobbyStatus
-                {
-                    UsersInQueue = Enumerable.Range(1, 10).ToArray(),
-                    RatingDistribution = Enumerable.Range(0, 24).Select(i => (400 + i * 100, (int)Math.Round(generateCount(400 + i * 100, 1600, 400, 7200)))).ToArray(),
-                    UserRating = Random.Shared.Next(400, 2800),
-                    RecentMatches = Enumerable.Range(1, 10).Select(_ => (MatchRoomState)new RankedPlayRoomState
-                    {
-                        Users =
-                        {
-                            { userId1, new RankedPlayUserInfo { Rating = 0, Life = Random.Shared.Next(0, 1_000_001), RoundsWon = Random.Shared.Next(0, 4) } },
-                            { userId2, new RankedPlayUserInfo { Rating = 0, Life = Random.Shared.Next(0, 1_000_001), RoundsWon = Random.Shared.Next(0, 4) } },
-                        }
-                    }).ToArray()
-                }).WaitSafely();
-            });
         }
 
         [Test]
         public void TestBasic()
         {
+            sendStatusUpdate();
+
             AddStep("change state to idle", () => setState(ScreenQueue.MatchmakingScreenState.Idle));
 
             AddStep("change state to queueing", () => setState(ScreenQueue.MatchmakingScreenState.Queueing));
@@ -81,8 +62,21 @@ namespace osu.Game.Tests.Visual.Matchmaking
         }
 
         [Test]
+        public void TestLongLoad()
+        {
+            AddAssert("loading spinner is not present", () => this.ChildrenOfType<LoadingSpinner>().Single().IsPresent, () => Is.False);
+
+            AddUntilStep("loading spinner is present", () => this.ChildrenOfType<LoadingSpinner>().Single().IsPresent, () => Is.True);
+
+            sendStatusUpdate();
+            AddUntilStep("loading spinner is not present", () => this.ChildrenOfType<LoadingSpinner>().Single().IsPresent, () => Is.False);
+        }
+
+        [Test]
         public void TestConnectionLoss()
         {
+            sendStatusUpdate();
+
             AddUntilStep("wait for pool selector", () => this.ChildrenOfType<PoolSelector>().FirstOrDefault()?.IsLoaded, () => Is.True);
             AddStep("disconnect", () => MultiplayerClient.Disconnect());
             AddUntilStep("pool selector is disabled", () => this.ChildrenOfType<PoolSelector>().Single().Enabled.Value, () => Is.False);
@@ -93,6 +87,8 @@ namespace osu.Game.Tests.Visual.Matchmaking
         [Test]
         public void TestDelayedRoomScreenPushDoesNotRunIfRoomIsLeftPrematurely()
         {
+            sendStatusUpdate();
+
             AddStep("change state to in room then immediately leave room", () =>
             {
                 setState(ScreenQueue.MatchmakingScreenState.InRoom);
@@ -109,6 +105,8 @@ namespace osu.Game.Tests.Visual.Matchmaking
         [Test]
         public void TestRoomScreenPushDelayedRoomJoin()
         {
+            sendStatusUpdate();
+
             AddStep("signal room ready", () =>
             {
                 MultiplayerClient.RoomSetupAction = _ => Thread.Sleep(2500);
@@ -120,6 +118,8 @@ namespace osu.Game.Tests.Visual.Matchmaking
         [Test]
         public void TestRoomJoinError()
         {
+            sendStatusUpdate();
+
             AddStep("signal room ready", () =>
             {
                 MultiplayerClient.RoomSetupAction = _ =>
@@ -157,6 +157,29 @@ namespace osu.Game.Tests.Visual.Matchmaking
 
             QueueController.CurrentState.Value = state;
         }
+
+        private void sendStatusUpdate() => AddStep("send status update", () =>
+        {
+            int userId1 = Random.Shared.Next(1, 11);
+            int userId2 = Random.Shared.GetItems(Enumerable.Range(1, 10).Except([userId1]).ToArray(), 1).Single();
+
+            MultiplayerClient.MatchmakingLobbyStatusChanged(new MatchmakingLobbyStatus
+            {
+                UsersInQueue = Enumerable.Range(1, 10).ToArray(),
+                RatingDistribution = Enumerable.Range(0, 24).Select(i => (400 + i * 100, (int)Math.Round(generateCount(400 + i * 100, 1600, 400, 7200)))).ToArray(),
+                UserRating = Random.Shared.Next(600, 3000),
+                UserSigma = 50,
+                UserRank = Random.Shared.Next(1, 500),
+                RecentMatches = Enumerable.Range(1, 10).Select(_ => (MatchRoomState)new RankedPlayRoomState
+                {
+                    Users =
+                    {
+                        { userId1, new RankedPlayUserInfo { Rating = 0, Life = Random.Shared.Next(0, 1_000_001), RoundsWon = Random.Shared.Next(0, 4) } },
+                        { userId2, new RankedPlayUserInfo { Rating = 0, Life = Random.Shared.Next(0, 1_000_001), RoundsWon = Random.Shared.Next(0, 4) } },
+                    }
+                }).ToArray()
+            }).WaitSafely();
+        });
 
         private void waitForMatchScreenLoad() => AddUntilStep("wait for match screen load", () => Stack.CurrentScreen is ScreenMatchmaking matchmaking && matchmaking.IsLoaded);
 
