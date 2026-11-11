@@ -12,11 +12,9 @@ using osu.Framework.Localisation;
 using osu.Game.Extensions;
 using osu.Game.Graphics;
 using osu.Game.Graphics.Sprites;
-using osu.Game.Online.API.Requests.Responses;
 using osu.Game.Online.Matchmaking;
 using osu.Game.Online.RankedPlay;
 using osu.Game.Rulesets;
-using osu.Game.Scoring;
 using osu.Game.Screens.OnlinePlay.Matchmaking.RankedPlay.Components;
 using osuTK;
 using osuTK.Graphics;
@@ -193,7 +191,7 @@ namespace osu.Game.Screens.OnlinePlay.Matchmaking.Queue
                             return;
 
                         Schedule(() => badgeContainer.Child = new DivisionBadge(
-                            new APIRankedPlayDivision { Tier = RankingTier.Bronze, Division = RankedPlayDivision.I, StartRating = 2400, EndRating = 3000 },
+                            division,
                             Ruleset.Value,
                             UserStats.Value.Rank
                         )
