@@ -98,12 +98,39 @@ namespace osu.Game.Screens.OnlinePlay.Matchmaking.Queue
             availablePools = await client.GetMatchmakingPoolsOfType(MatchmakingPoolType.RankedPlay).ConfigureAwait(false);
         }
 
-        public async Task<IReadOnlyList<MatchmakingPool>> GetMatchmakingPools()
+        /// <summary>
+        /// Retrieves the list of all currently active matchmaking pools.
+        /// </summary>
+        /// <remarks>
+        /// While this should generally return immediately, as <see cref="QueueController"/> fetches
+        /// the lists immediately after connecting to the matchmaking hub, it is async nonetheless for
+        /// the off chance the fetch takes a long time.
+        /// </remarks>
+        public async Task<IReadOnlyList<MatchmakingPool>> GetMatchmakingPoolsAsync()
         {
             await Task.WhenAll(poolFetchTask).ConfigureAwait(false);
 
             // Return empty list on the off chance the fetch task fails.
             return availablePools ?? [];
+        }
+
+        /// <summary>
+        /// Retrieves the list of all currently active matchmaking pools in a synchronous manner.
+        /// </summary>
+        /// <returns>
+        /// A list containing the currently active matchmaking pools, or an empty list if they
+        /// are still being fetched from the server.
+        /// </returns>
+        /// <remarks>
+        /// This method should only be used in situations where awaiting the <see cref="GetMatchmakingPoolsAsync"/>
+        /// method is impossible.
+        /// </remarks>
+        public IReadOnlyList<MatchmakingPool> GetMatchmakingPools()
+        {
+            if (availablePools == null || !poolFetchTask.IsCompletedSuccessfully)
+                return [];
+
+            return availablePools;
         }
 
         /// <summary>

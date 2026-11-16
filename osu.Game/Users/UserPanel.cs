@@ -3,10 +3,9 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using osu.Framework.Allocation;
-using osu.Framework.Extensions;
+using osu.Framework.Bindables;
 using osu.Framework.Extensions.LocalisationExtensions;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
@@ -34,6 +33,7 @@ using osu.Game.Screens.Play;
 using osu.Game.Users.Drawables;
 using osuTK;
 using osu.Game.Online.Rooms;
+using osu.Game.Rulesets;
 
 namespace osu.Game.Users
 {
@@ -64,6 +64,9 @@ namespace osu.Game.Users
 
         [Resolved]
         private IAPIProvider api { get; set; } = null!;
+
+        [Resolved]
+        private IBindable<RulesetInfo> ruleset { get; set; } = null!;
 
         [Resolved]
         private ChannelManager? channelManager { get; set; }
@@ -200,29 +203,27 @@ namespace osu.Game.Users
                         }));
                     }
 
+                    // Retrieve pool list only once so that any future calls to `canDuelUser` don't
+                    // return a different result because of the pools changing (e.g. because a new
+                    // season rolled out)
+                    var matchmakingPools = queueController?.GetMatchmakingPools() ?? [];
+
                     if (canDuelUser())
                     {
-                        // This is done in a blocking manner because:
-                        //   - `QueueController` fetches available pools immediately upon connecting,
-                        //   - the check in `canDuelUser` below ensures that the task completes immediately,
-                        //     meaning that the pools were returned from the local cache instead of being
-                        //     fetched.
-                        var pools = queueController.GetMatchmakingPools().GetResultSafely();
-
-                        if (pools.Count > 0)
+                        items.Add(new OsuMenuItem(ContextMenuStrings.DuelPlayer)
                         {
-                            items.Add(new OsuMenuItem(ContextMenuStrings.DuelPlayer)
-                            {
-                                Items = pools
-                                        .Where(p => p.Type == MatchmakingPoolType.RankedPlay)
-                                        .Select(p => new OsuMenuItem(p.DisplayName, MenuItemType.Standard, () =>
-                                        {
-                                            if (canDuelUser())
-                                                queueController?.IssueDuel(p, User.Id);
-                                        })).ToArray()
-                            });
-                        }
+                            Items = matchmakingPools
+                                    .OrderBy(p => p.RulesetId == ruleset.Value.OnlineID ? 1 : 0)
+                                    .Where(p => p.Type == MatchmakingPoolType.RankedPlay)
+                                    .Select(p => new OsuMenuItem(p.DisplayName, MenuItemType.Standard, () =>
+                                    {
+                                        if (canDuelUser())
+                                            queueController?.IssueDuel(p, User.Id);
+                                    })).ToArray(),
+                        });
                     }
+
+                    bool canDuelUser() => isUserOnline() && matchmakingPools.Count > 0 && multiplayerClient?.Room?.Settings.MatchType.IsMatchmakingType() != true;
                 }
 
                 return items.ToArray();
@@ -230,21 +231,6 @@ namespace osu.Game.Users
                 bool isUserOnline() => metadataClient?.GetPresence(User.OnlineID) != null;
                 bool canInviteUser() => isUserOnline() && multiplayerClient?.Room?.Users.All(u => u.UserID != User.Id) == true && multiplayerClient?.Room?.Settings.MatchType.IsMatchmakingType() != true;
                 bool isUserBlocked() => api.LocalUserState.Blocks.Any(b => b.TargetID == User.OnlineID);
-
-                [MemberNotNullWhen(true, nameof(queueController))]
-                bool canDuelUser()
-                {
-                    if (queueController == null)
-                        return false;
-
-                    var task = queueController.GetMatchmakingPools();
-
-                    // Don't attempt to show pools in the context menu if for some reason the
-                    // get pools task didn't complete immediately. This is done in order not to
-                    // block it from appearing right after mouse click because of a long-running
-                    // network fetch.
-                    return isUserOnline() && task.IsCompletedSuccessfully && multiplayerClient?.Room?.Settings.MatchType.IsMatchmakingType() != true;
-                }
             }
         }
 

@@ -383,7 +383,7 @@ namespace osu.Game.Screens.OnlinePlay.Matchmaking.Queue
 
             client.MatchmakingLobbyStatusChanged += onMatchmakingLobbyStatusChanged;
 
-            queue.GetMatchmakingPools().ContinueWith(t =>
+            queue.GetMatchmakingPoolsAsync().ContinueWith(t =>
             {
                 var pools = t.GetResultSafely();
 
