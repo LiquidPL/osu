@@ -44,6 +44,7 @@ namespace osu.Game.Screens.Select
     public sealed partial class BeatmapLeaderboardScore : OsuClickableContainer, IHasContextMenu, IHasCustomTooltip<ScoreInfo>
     {
         public const int HEIGHT = 50;
+        public const int CORNER_RADIUS = 10;
 
         public readonly ScoreInfo Score;
 
@@ -88,7 +89,6 @@ namespace osu.Game.Screens.Select
         private const float statistics_compact_min_width = 90;
         private const float rank_label_width = 40;
 
-        private const int corner_radius = 10;
         private const int transition_duration = 200;
 
         private static readonly Color4 personal_best_gradient_left = Color4Extensions.FromHex("#66FFCC");
@@ -149,7 +149,7 @@ namespace osu.Game.Screens.Select
             Child = new Container
             {
                 Masking = true,
-                CornerRadius = corner_radius,
+                CornerRadius = CORNER_RADIUS,
                 RelativeSizeAxes = Axes.Both,
                 Children = new Drawable[]
                 {
@@ -186,7 +186,7 @@ namespace osu.Game.Screens.Select
                         Child = new Container
                         {
                             Masking = true,
-                            CornerRadius = corner_radius,
+                            CornerRadius = CORNER_RADIUS,
                             RelativeSizeAxes = Axes.Both,
                             Children = new Drawable[]
                             {
@@ -221,7 +221,7 @@ namespace osu.Game.Screens.Select
                                             new Container
                                             {
                                                 AutoSizeAxes = Axes.Both,
-                                                CornerRadius = corner_radius,
+                                                CornerRadius = CORNER_RADIUS,
                                                 Masking = true,
                                                 Children = new Drawable[]
                                                 {
@@ -265,7 +265,7 @@ namespace osu.Game.Screens.Select
                                                 RelativeSizeAxes = Axes.X,
                                                 AutoSizeAxes = Axes.Y,
                                                 Direction = FillDirection.Vertical,
-                                                Padding = new MarginPadding { Horizontal = corner_radius },
+                                                Padding = new MarginPadding { Horizontal = CORNER_RADIUS },
                                                 Children = new Drawable[]
                                                 {
                                                     new FillFlowContainer
@@ -410,7 +410,7 @@ namespace osu.Game.Screens.Select
                                     {
                                         RelativeSizeAxes = Axes.Both,
                                         Masking = true,
-                                        CornerRadius = corner_radius,
+                                        CornerRadius = CORNER_RADIUS,
                                         Children = new Drawable[]
                                         {
                                             totalScoreBackground = new Box
@@ -429,7 +429,7 @@ namespace osu.Game.Screens.Select
                                                 Anchor = Anchor.CentreRight,
                                                 Origin = Anchor.CentreRight,
                                                 Direction = FillDirection.Vertical,
-                                                Padding = new MarginPadding { Horizontal = corner_radius },
+                                                Padding = new MarginPadding { Horizontal = CORNER_RADIUS },
                                                 Spacing = new Vector2(0f, -2f),
                                                 Children = new Drawable[]
                                                 {
@@ -708,7 +708,7 @@ namespace osu.Game.Screens.Select
             }
         }
 
-        private partial class RankLabel : Container, IHasTooltip
+        public partial class RankLabel : Container, IHasTooltip
         {
             private readonly bool darkText;
             private readonly OsuSpriteText text;
