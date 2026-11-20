@@ -659,7 +659,7 @@ namespace osu.Game.Screens.Select
             protected override LocalisableString Format() => Date.ToShortRelativeTime(TimeSpan.FromSeconds(30));
         }
 
-        private partial class ScoreComponentLabel : Container
+        public partial class ScoreComponentLabel : Container
         {
             private readonly LocalisableString name;
             private readonly LocalisableString value;

@@ -3,7 +3,6 @@
 
 using osu.Framework.Allocation;
 using osu.Framework.Extensions.Color4Extensions;
-using osu.Framework.Extensions.LocalisationExtensions;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Colour;
 using osu.Framework.Graphics.Containers;
@@ -15,7 +14,6 @@ using osu.Game.Graphics.Containers;
 using osu.Game.Graphics.Sprites;
 using osu.Game.Online.API.Requests.Responses;
 using osu.Game.Overlays;
-using osu.Game.Resources.Localisation.Web;
 using osu.Game.Screens.Select;
 using osu.Game.Users;
 using osu.Game.Users.Drawables;
@@ -41,8 +39,8 @@ namespace osu.Game.Screens.OnlinePlay.Playlists
 
         private const float right_content_width = 140;
         private const float common_min_width = 140;
-        private const float statistics_regular_min_width = 220;
-        private const float statistics_compact_min_width = 115;
+        private const float statistics_regular_min_width = 165;
+        private const float statistics_compact_min_width = 90;
         private const float rank_label_width = 40;
 
         private const int corner_radius = BeatmapLeaderboardScore.CORNER_RADIUS;
@@ -65,7 +63,7 @@ namespace osu.Game.Screens.OnlinePlay.Playlists
 
         private Box totalScoreBackground = null!;
 
-        private FillFlowContainer<BeatmapLeaderboardScore.StatisticDisplay> statisticsContainer = null!;
+        private FillFlowContainer<BeatmapLeaderboardScore.ScoreComponentLabel> statisticsContainer = null!;
         private Container highlightGradient = null!;
         private Container rankLabelStandalone = null!;
         private Container rankLabelOverlay = null!;
@@ -249,7 +247,7 @@ namespace osu.Game.Screens.OnlinePlay.Playlists
                                                 AutoSizeAxes = Axes.Both,
                                                 Anchor = Anchor.CentreRight,
                                                 Origin = Anchor.CentreRight,
-                                                Child = statisticsContainer = new FillFlowContainer<BeatmapLeaderboardScore.StatisticDisplay>
+                                                Child = statisticsContainer = new FillFlowContainer<BeatmapLeaderboardScore.ScoreComponentLabel>
                                                 {
                                                     Name = @"Statistics container",
                                                     Padding = new MarginPadding { Right = 10 },
@@ -260,9 +258,8 @@ namespace osu.Game.Screens.OnlinePlay.Playlists
                                                     Direction = FillDirection.Horizontal,
                                                     Children = new[]
                                                     {
-                                                        new BeatmapLeaderboardScore.StatisticDisplay(BeatmapsetsStrings.ShowScoreboardHeadersAccuracy.ToUpper(), Score.Accuracy.FormatAccuracy(), Score.Accuracy == 1, 55),
-                                                        new BeatmapLeaderboardScore.StatisticDisplay("ATTEMPTS", Score.TotalAttempts.ToString(), false, 50),
-                                                        new BeatmapLeaderboardScore.StatisticDisplay("COMPLETED", Score.CompletedBeatmaps.ToString(), false, 55),
+                                                        new BeatmapLeaderboardScore.ScoreComponentLabel("ATTEMPTS", Score.TotalAttempts.ToString(), false, 50),
+                                                        new BeatmapLeaderboardScore.ScoreComponentLabel("COMPLETED", Score.CompletedBeatmaps.ToString(), false, 55),
                                                     },
                                                     Alpha = 0,
                                                 }
@@ -310,6 +307,7 @@ namespace osu.Game.Screens.OnlinePlay.Playlists
                                                 Origin = Anchor.CentreRight,
                                                 Direction = FillDirection.Vertical,
                                                 Padding = new MarginPadding { Horizontal = corner_radius },
+                                                Spacing = new Vector2(0, 6),
                                                 Children = new Drawable[]
                                                 {
                                                     new OsuSpriteText
@@ -320,6 +318,14 @@ namespace osu.Game.Screens.OnlinePlay.Playlists
                                                         Current = { Value = Score.TotalScore.ToStandardFormattedString(0) },
                                                         Spacing = new Vector2(-1.5f),
                                                         Font = OsuFont.Style.Subtitle.With(weight: FontWeight.Light, fixedWidth: true),
+                                                    },
+                                                    new OsuSpriteText
+                                                    {
+                                                        Anchor = Anchor.TopRight,
+                                                        Origin = Anchor.TopRight,
+                                                        UseFullGlyphHeight = false,
+                                                        Text = Score.Accuracy.FormatAccuracy(),
+                                                        Font = OsuFont.Style.Caption1.With(weight: FontWeight.Light),
                                                     },
                                                 }
                                             }
@@ -414,24 +420,12 @@ namespace osu.Game.Screens.OnlinePlay.Playlists
                 statisticsContainer.FadeIn(duration, Easing.OutQuint).MoveToX(0, duration, Easing.OutQuint);
                 statisticsContainer.Direction = FillDirection.Horizontal;
                 statisticsContainer.ScaleTo(1, duration, Easing.OutQuint);
-
-                foreach (var statistic in statisticsContainer)
-                {
-                    statistic.Direction = Direction.Horizontal;
-                    statistic.Anchor = statistic.Origin = Anchor.TopLeft;
-                }
             }
             else if (mode >= DisplayMode.Compact)
             {
                 statisticsContainer.FadeIn(duration, Easing.OutQuint).MoveToX(0, duration, Easing.OutQuint);
                 statisticsContainer.Direction = FillDirection.Vertical;
                 statisticsContainer.ScaleTo(0.8f, duration, Easing.OutQuint);
-
-                foreach (var statistic in statisticsContainer)
-                {
-                    statistic.Direction = Direction.Vertical;
-                    statistic.Anchor = statistic.Origin = Anchor.TopRight;
-                }
             }
             else
                 statisticsContainer.FadeOut(duration, Easing.OutQuint).MoveToX(statisticsContainer.DrawWidth, duration, Easing.OutQuint);
