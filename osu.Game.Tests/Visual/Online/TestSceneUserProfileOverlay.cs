@@ -384,6 +384,99 @@ namespace osu.Game.Tests.Visual.Online
                     FirstPlacements = 1234,
                     Plays = 4444,
                     TotalPoints = 5555,
+                    RecentHistory =
+                    [
+                        new APIUserMatchmakingRatingHistory
+                        {
+                            CreatedAt = DateTimeOffset.Now,
+                            Result = APIUserMatchmakingRatingHistory.MatchResult.Win,
+                            RatingAfter = 1337
+                        },
+                        new APIUserMatchmakingRatingHistory
+                        {
+                            CreatedAt = DateTimeOffset.Now.AddDays(-1),
+                            Result = APIUserMatchmakingRatingHistory.MatchResult.Loss,
+                            RatingAfter = 1317,
+                        },
+                        new APIUserMatchmakingRatingHistory
+                        {
+                            CreatedAt = DateTimeOffset.Now.AddDays(-2),
+                            Result = APIUserMatchmakingRatingHistory.MatchResult.Win,
+                            RatingAfter = 1340,
+                        },
+                        new APIUserMatchmakingRatingHistory
+                        {
+                            CreatedAt = DateTimeOffset.Now,
+                            Result = APIUserMatchmakingRatingHistory.MatchResult.Win,
+                            RatingAfter = 1337
+                        },
+                        new APIUserMatchmakingRatingHistory
+                        {
+                            CreatedAt = DateTimeOffset.Now.AddDays(-1),
+                            Result = APIUserMatchmakingRatingHistory.MatchResult.Loss,
+                            RatingAfter = 1317,
+                        },
+                        new APIUserMatchmakingRatingHistory
+                        {
+                            CreatedAt = DateTimeOffset.Now.AddDays(-2),
+                            Result = APIUserMatchmakingRatingHistory.MatchResult.Win,
+                            RatingAfter = 1340,
+                        },
+                        new APIUserMatchmakingRatingHistory
+                        {
+                            CreatedAt = DateTimeOffset.Now,
+                            Result = APIUserMatchmakingRatingHistory.MatchResult.Win,
+                            RatingAfter = 1337
+                        },
+                        new APIUserMatchmakingRatingHistory
+                        {
+                            CreatedAt = DateTimeOffset.Now.AddDays(-1),
+                            Result = APIUserMatchmakingRatingHistory.MatchResult.Loss,
+                            RatingAfter = 1317,
+                        },
+                        new APIUserMatchmakingRatingHistory
+                        {
+                            CreatedAt = DateTimeOffset.Now.AddDays(-2),
+                            Result = APIUserMatchmakingRatingHistory.MatchResult.Win,
+                            RatingAfter = 1340,
+                        },
+                        new APIUserMatchmakingRatingHistory
+                        {
+                            CreatedAt = DateTimeOffset.Now,
+                            Result = APIUserMatchmakingRatingHistory.MatchResult.Win,
+                            RatingAfter = 1337
+                        },
+                        new APIUserMatchmakingRatingHistory
+                        {
+                            CreatedAt = DateTimeOffset.Now.AddDays(-1),
+                            Result = APIUserMatchmakingRatingHistory.MatchResult.Loss,
+                            RatingAfter = 1317,
+                        },
+                        new APIUserMatchmakingRatingHistory
+                        {
+                            CreatedAt = DateTimeOffset.Now.AddDays(-2),
+                            Result = APIUserMatchmakingRatingHistory.MatchResult.Win,
+                            RatingAfter = 1340,
+                        },
+                        new APIUserMatchmakingRatingHistory
+                        {
+                            CreatedAt = DateTimeOffset.Now,
+                            Result = APIUserMatchmakingRatingHistory.MatchResult.Win,
+                            RatingAfter = 1337
+                        },
+                        new APIUserMatchmakingRatingHistory
+                        {
+                            CreatedAt = DateTimeOffset.Now.AddDays(-1),
+                            Result = APIUserMatchmakingRatingHistory.MatchResult.Loss,
+                            RatingAfter = 1317,
+                        },
+                        new APIUserMatchmakingRatingHistory
+                        {
+                            CreatedAt = DateTimeOffset.Now.AddDays(-2),
+                            Result = APIUserMatchmakingRatingHistory.MatchResult.Win,
+                            RatingAfter = 1340,
+                        },
+                    ],
                 }
             ],
             Title = "osu!volunteer",

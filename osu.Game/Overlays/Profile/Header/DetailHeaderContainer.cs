@@ -38,33 +38,64 @@ namespace osu.Game.Overlays.Profile.Header
                     ColumnDimensions = new[]
                     {
                         new Dimension(),
-                        new Dimension(GridSizeMode.AutoSize),
-                        new Dimension(GridSizeMode.AutoSize),
+                        new Dimension(GridSizeMode.Absolute, size: 10),
+                        new Dimension(),
+                        new Dimension(GridSizeMode.Absolute, size: 10),
+                        new Dimension(),
                     },
                     Content = new[]
                     {
-                        new Drawable[]
+                        new Drawable?[]
                         {
-                            new MainDetails
+                            new SoloPlayProfileCard
                             {
                                 RelativeSizeAxes = Axes.X,
-                                User = { BindTarget = User }
+                                User = { BindTarget = User },
                             },
-                            new Box
+                            null,
+                            new RankedPlayProfileCard
                             {
-                                RelativeSizeAxes = Axes.Y,
-                                Width = 2,
-                                Colour = colourProvider.Background6,
-                                Margin = new MarginPadding { Horizontal = 15 }
+                                RelativeSizeAxes = Axes.X,
+                                User = { BindTarget = User },
                             },
-                            new ExtendedDetails
+                            null,
+                            new ModdingProfileCard
                             {
-                                Anchor = Anchor.CentreLeft,
-                                Origin = Anchor.CentreLeft,
-                                User = { BindTarget = User }
-                            }
-                        }
-                    }
+                                RelativeSizeAxes = Axes.X,
+                                Height = 400,
+                            },
+                        },
+                    },
+                    // ColumnDimensions = new[]
+                    // {
+                    //     new Dimension(),
+                    //     new Dimension(GridSizeMode.AutoSize),
+                    //     new Dimension(GridSizeMode.AutoSize),
+                    // },
+                    // Content = new[]
+                    // {
+                    //     new Drawable[]
+                    //     {
+                    //         new MainDetails
+                    //         {
+                    //             RelativeSizeAxes = Axes.X,
+                    //             User = { BindTarget = User }
+                    //         },
+                    //         new Box
+                    //         {
+                    //             RelativeSizeAxes = Axes.Y,
+                    //             Width = 2,
+                    //             Colour = colourProvider.Background6,
+                    //             Margin = new MarginPadding { Horizontal = 15 }
+                    //         },
+                    //         new ExtendedDetails
+                    //         {
+                    //             Anchor = Anchor.CentreLeft,
+                    //             Origin = Anchor.CentreLeft,
+                    //             User = { BindTarget = User }
+                    //         }
+                    //     }
+                    // }
                 }
             };
         }

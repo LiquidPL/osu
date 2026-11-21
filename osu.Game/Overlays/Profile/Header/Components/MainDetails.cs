@@ -231,7 +231,7 @@ namespace osu.Game.Overlays.Profile.Header.Components
             return result ?? default;
         }
 
-        private partial class ScoreRankInfo : CompositeDrawable
+        public partial class ScoreRankInfo : CompositeDrawable
         {
             private readonly OsuSpriteText rankCount;
 
