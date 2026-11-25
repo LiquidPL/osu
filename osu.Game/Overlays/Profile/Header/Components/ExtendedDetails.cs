@@ -1,13 +1,17 @@
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+using System;
 using osu.Framework.Allocation;
 using osu.Framework.Bindables;
 using osu.Framework.Extensions.LocalisationExtensions;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
+using osu.Framework.Graphics.Cursor;
 using osu.Framework.Graphics.Shapes;
 using osu.Framework.Graphics.Sprites;
+using osu.Framework.Localisation;
+using osu.Game.Extensions;
 using osu.Game.Graphics;
 using osu.Game.Graphics.Sprites;
 using osu.Game.Resources.Localisation.Web;
@@ -18,11 +22,14 @@ namespace osu.Game.Overlays.Profile.Header.Components
 {
     public partial class ExtendedDetails : CompositeDrawable
     {
+        public const int MIN_HEIGHT = 176;
+
         public Bindable<UserProfileData?> User { get; } = new Bindable<UserProfileData?>();
 
         private SpriteText rankedScore = null!;
         private SpriteText hitAccuracy = null!;
         private SpriteText playCount = null!;
+        private ExtendedDetailsEntryValue playTime = null!;
         private SpriteText totalScore = null!;
         private SpriteText totalHits = null!;
         private SpriteText hitsPerPlay = null!;
@@ -35,7 +42,6 @@ namespace osu.Game.Overlays.Profile.Header.Components
             const float vertical_spacing = 4;
             const float horizontal_spacing = 20;
 
-            AutoSizeAxes = Axes.Both;
             CornerRadius = 6;
             Masking = true;
 
@@ -47,17 +53,20 @@ namespace osu.Game.Overlays.Profile.Header.Components
                     Colour = colourProvider.Background4,
                 },
                 // this should really be a grid, but trying to avoid one to avoid the performance hit.
-                new FillFlowContainer
+                new Container
                 {
-                    AutoSizeAxes = Axes.Both,
-                    Direction = FillDirection.Horizontal,
-                    Spacing = new Vector2(horizontal_spacing, 0),
+                    RelativeSizeAxes = Axes.X,
+                    AutoSizeAxes = Axes.Y,
+                    // Direction = FillDirection.Horizontal,
+                    // Spacing = new Vector2(horizontal_spacing, 0),
                     Padding = new MarginPadding { Vertical = 18, Horizontal = 12 },
                     Children = new[]
                     {
                         new FillFlowContainer
                         {
                             Name = @"Labels",
+                            Anchor = Anchor.TopLeft,
+                            Origin = Anchor.TopLeft,
                             AutoSizeAxes = Axes.Both,
                             Direction = FillDirection.Vertical,
                             Spacing = new Vector2(0, vertical_spacing),
@@ -66,6 +75,7 @@ namespace osu.Game.Overlays.Profile.Header.Components
                                 new ExtendedDetailsEntryLabel(colourProvider) { Text = UsersStrings.ShowStatsRankedScore },
                                 new ExtendedDetailsEntryLabel(colourProvider) { Text = UsersStrings.ShowStatsHitAccuracy },
                                 new ExtendedDetailsEntryLabel(colourProvider) { Text = UsersStrings.ShowStatsPlayCount },
+                                new ExtendedDetailsEntryLabel(colourProvider) { Text = UsersStrings.ShowStatsPlayTime },
                                 new ExtendedDetailsEntryLabel(colourProvider) { Text = UsersStrings.ShowStatsTotalScore },
                                 new ExtendedDetailsEntryLabel(colourProvider) { Text = UsersStrings.ShowStatsTotalHits },
                                 new ExtendedDetailsEntryLabel(colourProvider) { Text = UsersStrings.ShowStatsHitsPerPlay },
@@ -76,6 +86,8 @@ namespace osu.Game.Overlays.Profile.Header.Components
                         new FillFlowContainer
                         {
                             Name = @"Values",
+                            Anchor = Anchor.TopRight,
+                            Origin = Anchor.TopRight,
                             AutoSizeAxes = Axes.Both,
                             Direction = FillDirection.Vertical,
                             Spacing = new Vector2(0, vertical_spacing),
@@ -84,6 +96,7 @@ namespace osu.Game.Overlays.Profile.Header.Components
                                 rankedScore = new ExtendedDetailsEntryValue(colourProvider),
                                 hitAccuracy = new ExtendedDetailsEntryValue(colourProvider),
                                 playCount = new ExtendedDetailsEntryValue(colourProvider),
+                                playTime = new ExtendedDetailsEntryValue(colourProvider),
                                 totalScore = new ExtendedDetailsEntryValue(colourProvider),
                                 totalHits = new ExtendedDetailsEntryValue(colourProvider),
                                 hitsPerPlay = new ExtendedDetailsEntryValue(colourProvider),
@@ -121,6 +134,11 @@ namespace osu.Game.Overlays.Profile.Header.Components
             rankedScore.Text = statistics.RankedScore.ToLocalisableString(@"N0");
             hitAccuracy.Text = statistics.DisplayAccuracy;
             playCount.Text = statistics.PlayCount.ToLocalisableString(@"N0");
+
+            var playTimeSpan = TimeSpan.FromSeconds(statistics.PlayTime ?? 0);
+            playTime.Text = playTimeSpan.ToPlayTime();
+            playTime.TooltipText = playTimeSpan.ToPlayTimeNonDay();
+
             totalScore.Text = statistics.TotalScore.ToLocalisableString(@"N0");
             totalHits.Text = statistics.TotalHits.ToLocalisableString(@"N0");
             hitsPerPlay.Text = getHitsPerPlay(statistics).ToLocalisableString(@"N0");
@@ -137,13 +155,15 @@ namespace osu.Game.Overlays.Profile.Header.Components
             }
         }
 
-        public partial class ExtendedDetailsEntryValue : OsuSpriteText
+        public partial class ExtendedDetailsEntryValue : OsuSpriteText, IHasTooltip
         {
             public ExtendedDetailsEntryValue(OverlayColourProvider colourProvider)
             {
                 Font = OsuFont.Default.With(size: 12, weight: FontWeight.Bold);
                 Colour = colourProvider.Content2;
             }
+
+            public LocalisableString TooltipText { get; set; }
         }
     }
 }

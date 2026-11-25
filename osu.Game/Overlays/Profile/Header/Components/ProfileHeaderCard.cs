@@ -21,6 +21,21 @@ namespace osu.Game.Overlays.Profile.Header.Components
         private readonly LocalisableString title;
         private readonly IconUsage icon;
 
+        /// <summary>
+        /// The container holding the entire top section of the card (including
+        /// the header).
+        /// </summary>
+        /// <remarks>
+        /// This should only be used if there's a need to add content next to the
+        /// header which would otherwise be placed below it if added via
+        /// <see cref="TopContent"/> (i.e. ranked division badge).
+        /// </remarks>
+        protected Container TopContainer { get; private set; } = null!;
+
+        /// <summary>
+        /// The container holding the contents of the top section of the card
+        /// (excluding the header).
+        /// </summary>
         protected Container TopContent { get; private set; } = null!;
 
         protected Container MiddleContent { get; private set; } = null!;
@@ -70,7 +85,7 @@ namespace osu.Game.Overlays.Profile.Header.Components
                                     Origin = Anchor.BottomLeft,
                                     Colour = ColourInfo.GradientVertical(Color4.Black.Opacity(0), Color4.Black.Opacity(0.1f)),
                                 },
-                                new Container
+                                TopContainer = new Container
                                 {
                                     RelativeSizeAxes = Axes.X,
                                     AutoSizeAxes = Axes.Y,

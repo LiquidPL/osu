@@ -67,6 +67,31 @@ namespace osu.Game.Users
         [JsonProperty(@"play_time")]
         public int? PlayTime;
 
+        public LocalisableString PlayTimeFormatted
+        {
+            get
+            {
+                var playTime = TimeSpan.FromSeconds(PlayTime ?? 0);
+
+                return playTime.ToString(playTime.Days > 0 ? @"d'd 'h'h 'm'm'" : @"h'h 'm'm'");
+            }
+        }
+
+        public LocalisableString PlayTimeTooltip
+        {
+            get
+            {
+                var playTime = TimeSpan.FromSeconds(PlayTime ?? 0);
+
+                int totalMinutes = (int)Math.Floor(playTime.TotalMinutes);
+                int totalHours = (int)Math.Round(playTime.TotalHours);
+
+                return totalHours < 2
+                    ? CommonStrings.CountMinutes(totalMinutes)
+                    : CommonStrings.CountHours(totalHours);
+            }
+        }
+
         [JsonProperty(@"total_score")]
         public long TotalScore;
 

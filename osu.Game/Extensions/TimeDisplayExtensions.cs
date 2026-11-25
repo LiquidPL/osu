@@ -103,5 +103,18 @@ namespace osu.Game.Extensions
                 years += 1;
             return years == 1 ? "1yr" : $"{years}yrs";
         }
+
+        public static string ToPlayTime(this TimeSpan playTime)
+            => playTime.ToString(playTime.Days > 0 ? @"d'd 'h'h 'm'm'" : @"h'h 'm'm'");
+
+        public static LocalisableString ToPlayTimeNonDay(this TimeSpan playTime)
+        {
+            int totalMinutes = (int)Math.Floor(playTime.TotalMinutes);
+            int totalHours = (int)Math.Round(playTime.TotalHours);
+
+            return totalHours < 2
+                ? CommonStrings.CountMinutes(totalMinutes)
+                : CommonStrings.CountHours(totalHours);
+        }
     }
 }

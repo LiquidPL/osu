@@ -7,12 +7,19 @@ using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Shapes;
 using osu.Game.Overlays.Profile.Header.Components;
+using osuTK;
 
 namespace osu.Game.Overlays.Profile.Header
 {
     public partial class DetailHeaderContainer : CompositeDrawable
     {
         public readonly Bindable<UserProfileData?> User = new Bindable<UserProfileData?>();
+
+        private GridContainer cardContainer = null!;
+        private FillFlowContainer rightColumn = null!;
+
+        private SoloPlayProfileCard soloCard = null!;
+        private RankedPlayProfileCard rankedCard = null!;
 
         [BackgroundDependencyLoader]
         private void load(OverlayColourProvider colourProvider)
@@ -26,7 +33,7 @@ namespace osu.Game.Overlays.Profile.Header
                     RelativeSizeAxes = Axes.Both,
                     Colour = colourProvider.Background5,
                 },
-                new GridContainer
+                cardContainer = new GridContainer
                 {
                     RelativeSizeAxes = Axes.X,
                     AutoSizeAxes = Axes.Y,
@@ -38,35 +45,87 @@ namespace osu.Game.Overlays.Profile.Header
                     ColumnDimensions = new[]
                     {
                         new Dimension(),
-                        new Dimension(GridSizeMode.AutoSize),
-                        new Dimension(GridSizeMode.AutoSize),
+                        new Dimension(GridSizeMode.Absolute, size: 10),
+                        new Dimension(),
+                        new Dimension(GridSizeMode.Absolute, size: 10),
+                        new Dimension(),
                     },
                     Content = new[]
                     {
-                        new Drawable[]
+                        new Drawable?[]
                         {
-                            new MainDetails
+                            soloCard = new SoloPlayProfileCard
                             {
                                 RelativeSizeAxes = Axes.X,
-                                User = { BindTarget = User }
+                                User = { BindTarget = User },
                             },
-                            new Box
+                            null,
+                            rankedCard = new RankedPlayProfileCard
                             {
-                                RelativeSizeAxes = Axes.Y,
-                                Width = 2,
-                                Colour = colourProvider.Background6,
-                                Margin = new MarginPadding { Horizontal = 15 }
+                                RelativeSizeAxes = Axes.X,
+                                User = { BindTarget = User },
                             },
-                            new ExtendedDetails
+                            null,
+                            rightColumn = new FillFlowContainer
                             {
-                                Anchor = Anchor.CentreLeft,
-                                Origin = Anchor.CentreLeft,
-                                User = { BindTarget = User }
-                            }
-                        }
-                    }
+                                RelativeSizeAxes = Axes.X,
+                                AutoSizeAxes = Axes.Y,
+                                Direction = FillDirection.Vertical,
+                                Spacing = new Vector2(5),
+                                Children = new Drawable[]
+                                {
+                                    new PinnedBadgeProfileCard { User = { BindTarget = User } },
+                                    new DailyChallengeProfileCard { User = { BindTarget = User } },
+                                    new SeasonProfileCard { User = { BindTarget = User } },
+                                    new ExtendedDetails
+                                    {
+                                        RelativeSizeAxes = Axes.X,
+                                        User = { BindTarget = User }
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    // ColumnDimensions = new[]
+                    // {
+                    //     new Dimension(),
+                    //     new Dimension(GridSizeMode.AutoSize),
+                    //     new Dimension(GridSizeMode.AutoSize),
+                    // },
+                    // Content = new[]
+                    // {
+                    //     new Drawable[]
+                    //     {
+                    //         new MainDetails
+                    //         {
+                    //             RelativeSizeAxes = Axes.X,
+                    //             User = { BindTarget = User }
+                    //         },
+                    //         new Box
+                    //         {
+                    //             RelativeSizeAxes = Axes.Y,
+                    //             Width = 2,
+                    //             Colour = colourProvider.Background6,
+                    //             Margin = new MarginPadding { Horizontal = 15 }
+                    //         },
+                    //         new ExtendedDetails
+                    //         {
+                    //             Anchor = Anchor.CentreLeft,
+                    //             Origin = Anchor.CentreLeft,
+                    //             User = { BindTarget = User }
+                    //         }
+                    //     }
+                    // }
                 }
             };
+        }
+
+        protected override void UpdateAfterChildren()
+        {
+            base.UpdateAfterChildren();
+
+            // soloCard.Height = rankedCard.Height = Math.Max(cardContainer.DrawHeight - cardContainer.Padding.TotalHorizontal, rightColumn.DrawHeight);
+            // cardContainer.Height = Math.Max(soloCard.DrawHeight, Math.Max(rankedCard.DrawHeight, rightColumn.DrawHeight)) + 20;
         }
     }
 }

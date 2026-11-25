@@ -15,6 +15,7 @@ using osu.Game.Online.API.Requests;
 using osu.Game.Online.API.Requests.Responses;
 using osu.Game.Overlays;
 using osu.Game.Rulesets.Taiko;
+using osu.Game.Scoring;
 using osu.Game.Tests.Resources;
 using osu.Game.Users;
 
@@ -318,6 +319,13 @@ namespace osu.Game.Tests.Visual.Online
                     Mode = @"osu",
                     Data = Enumerable.Range(2345, 45).Concat(Enumerable.Range(2109, 40)).ToArray()
                 },
+                RankedScore = 53634164123,
+                Accuracy = 97.27,
+                PlayCount = 65256,
+                TotalScore = 639436524631,
+                TotalHits = 4653642,
+                MaxCombo = 2451,
+                ReplaysWatched = 56431,
                 GradesCount = new UserStatistics.Grades
                 {
                     A = 123,
@@ -357,6 +365,7 @@ namespace osu.Game.Tests.Visual.Online
                 {
                     AwardedAt = DateTimeOffset.FromUnixTimeSeconds(1505741569),
                     Description = "Outstanding help by being a voluntary test subject.",
+                    Image = "contributor-new.png",
                     ImageUrl = "https://assets.ppy.sh/profile-badges/contributor-new@2x.png",
                     ImageUrlLowRes = "https://assets.ppy.sh/profile-badges/contributor-new.png",
                     Url = "https://osu.ppy.sh/wiki/en/People/Community_Contributors",
@@ -369,6 +378,7 @@ namespace osu.Game.Tests.Visual.Online
                     ImageUrlLowRes = "https://assets.ppy.sh/profile-badges/contributor.png",
                 },
             },
+            PinnedBadgeImageName = "contributor-new.png",
             DailyChallengeStatistics = new APIUserDailyChallengeStatistics
             {
                 DailyStreakCurrent = 231,
@@ -378,6 +388,24 @@ namespace osu.Game.Tests.Visual.Online
                 Top10PercentPlacements = 345,
                 Top50PercentPlacements = 427,
                 PlayCount = 213,
+            },
+            CurrentSeasonStatistics = new APISeasonStatistics
+            {
+                Rank = 534,
+                TotalScore = 55463423,
+                Season = new APISeason
+                {
+                    ID = 1,
+                    Name = "Test Season",
+                },
+                Division = new APISeasonDivision
+                {
+                    ID = 1,
+                    Name = "Copper I",
+                    Tier = RankingTier.Bronze,
+                    ImageUrl = "https://assets.ppy.sh/profile-badges/spotlights-2026/autumn-2026-osu-copper-1@2x.png",
+                    Threshold = 0.95f,
+                },
             },
             MatchmakingStatistics =
             [
@@ -393,6 +421,99 @@ namespace osu.Game.Tests.Visual.Online
                     FirstPlacements = 1234,
                     Plays = 4444,
                     TotalPoints = 5555,
+                    RecentHistory =
+                    [
+                        new APIUserMatchmakingRatingHistory
+                        {
+                            CreatedAt = DateTimeOffset.Now,
+                            Result = APIUserMatchmakingRatingHistory.MatchResult.Win,
+                            RatingAfter = 1337
+                        },
+                        new APIUserMatchmakingRatingHistory
+                        {
+                            CreatedAt = DateTimeOffset.Now.AddDays(-1),
+                            Result = APIUserMatchmakingRatingHistory.MatchResult.Loss,
+                            RatingAfter = 1317,
+                        },
+                        new APIUserMatchmakingRatingHistory
+                        {
+                            CreatedAt = DateTimeOffset.Now.AddDays(-2),
+                            Result = APIUserMatchmakingRatingHistory.MatchResult.Win,
+                            RatingAfter = 1340,
+                        },
+                        new APIUserMatchmakingRatingHistory
+                        {
+                            CreatedAt = DateTimeOffset.Now,
+                            Result = APIUserMatchmakingRatingHistory.MatchResult.Win,
+                            RatingAfter = 1337
+                        },
+                        new APIUserMatchmakingRatingHistory
+                        {
+                            CreatedAt = DateTimeOffset.Now.AddDays(-1),
+                            Result = APIUserMatchmakingRatingHistory.MatchResult.Loss,
+                            RatingAfter = 1317,
+                        },
+                        new APIUserMatchmakingRatingHistory
+                        {
+                            CreatedAt = DateTimeOffset.Now.AddDays(-2),
+                            Result = APIUserMatchmakingRatingHistory.MatchResult.Win,
+                            RatingAfter = 1340,
+                        },
+                        new APIUserMatchmakingRatingHistory
+                        {
+                            CreatedAt = DateTimeOffset.Now,
+                            Result = APIUserMatchmakingRatingHistory.MatchResult.Win,
+                            RatingAfter = 1337
+                        },
+                        new APIUserMatchmakingRatingHistory
+                        {
+                            CreatedAt = DateTimeOffset.Now.AddDays(-1),
+                            Result = APIUserMatchmakingRatingHistory.MatchResult.Loss,
+                            RatingAfter = 1317,
+                        },
+                        new APIUserMatchmakingRatingHistory
+                        {
+                            CreatedAt = DateTimeOffset.Now.AddDays(-2),
+                            Result = APIUserMatchmakingRatingHistory.MatchResult.Win,
+                            RatingAfter = 1340,
+                        },
+                        new APIUserMatchmakingRatingHistory
+                        {
+                            CreatedAt = DateTimeOffset.Now,
+                            Result = APIUserMatchmakingRatingHistory.MatchResult.Win,
+                            RatingAfter = 1337
+                        },
+                        new APIUserMatchmakingRatingHistory
+                        {
+                            CreatedAt = DateTimeOffset.Now.AddDays(-1),
+                            Result = APIUserMatchmakingRatingHistory.MatchResult.Loss,
+                            RatingAfter = 1317,
+                        },
+                        new APIUserMatchmakingRatingHistory
+                        {
+                            CreatedAt = DateTimeOffset.Now.AddDays(-2),
+                            Result = APIUserMatchmakingRatingHistory.MatchResult.Win,
+                            RatingAfter = 1340,
+                        },
+                        new APIUserMatchmakingRatingHistory
+                        {
+                            CreatedAt = DateTimeOffset.Now,
+                            Result = APIUserMatchmakingRatingHistory.MatchResult.Win,
+                            RatingAfter = 1337
+                        },
+                        new APIUserMatchmakingRatingHistory
+                        {
+                            CreatedAt = DateTimeOffset.Now.AddDays(-1),
+                            Result = APIUserMatchmakingRatingHistory.MatchResult.Loss,
+                            RatingAfter = 1317,
+                        },
+                        new APIUserMatchmakingRatingHistory
+                        {
+                            CreatedAt = DateTimeOffset.Now.AddDays(-2),
+                            Result = APIUserMatchmakingRatingHistory.MatchResult.Win,
+                            RatingAfter = 1340,
+                        },
+                    ],
                 }
             ],
             Title = "osu!volunteer",

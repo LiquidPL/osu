@@ -6,6 +6,7 @@ using osu.Framework.Allocation;
 using osu.Framework.Bindables;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
+using osu.Game.Extensions;
 using osu.Game.Resources.Localisation.Web;
 
 namespace osu.Game.Overlays.Profile.Header.Components
@@ -33,13 +34,8 @@ namespace osu.Game.Overlays.Profile.Header.Components
         {
             var playTime = TimeSpan.FromSeconds(user.NewValue?.User.Statistics.PlayTime ?? 0);
 
-            int totalMinutes = (int)Math.Floor(playTime.TotalMinutes);
-            int totalHours = (int)Math.Round(playTime.TotalHours);
-
-            info.Content.Text = playTime.ToString(playTime.Days > 0 ? @"d'd 'h'h 'm'm'" : @"h'h 'm'm'");
-            info.Content.TooltipText = totalHours < 2
-                ? CommonStrings.CountMinutes(totalMinutes)
-                : CommonStrings.CountHours(totalHours);
+            info.Content.Text = playTime.ToPlayTime();
+            info.Content.TooltipText = playTime.ToPlayTimeNonDay();
         }
     }
 }

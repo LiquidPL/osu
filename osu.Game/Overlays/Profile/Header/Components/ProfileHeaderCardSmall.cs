@@ -100,14 +100,14 @@ namespace osu.Game.Overlays.Profile.Header.Components
                                 Direction = FillDirection.Vertical,
                                 Children = new Drawable[]
                                 {
-                                    Label = new OsuSpriteText
+                                    Label = CreateLabel().With(t =>
                                     {
-                                        Font = OsuFont.Style.Caption2.With(weight: FontWeight.Bold),
-                                    },
-                                    Value = new OsuSpriteText
+                                        t.Font = OsuFont.Style.Caption2.With(weight: FontWeight.Bold);
+                                    }),
+                                    Value = CreateValue().With(t =>
                                     {
-                                        Font = OsuFont.Style.Caption2,
-                                    },
+                                        t.Font = OsuFont.Style.Caption2;
+                                    }),
                                 },
                             },
                         },
@@ -131,5 +131,9 @@ namespace osu.Game.Overlays.Profile.Header.Components
             Label.Colour = colourProvider.Content1;
             Value.Colour = colourProvider.Content2;
         }
+
+        protected virtual OsuSpriteText CreateLabel() => new OsuSpriteText();
+
+        protected virtual OsuSpriteText CreateValue() => new OsuSpriteText();
     }
 }

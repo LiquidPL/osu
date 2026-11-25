@@ -276,6 +276,13 @@ namespace osu.Game.Online.API.Requests.Responses
         [JsonProperty("badges")]
         public Badge[] Badges;
 
+        [JsonProperty(@"profile_pinned_badge")]
+        [CanBeNull]
+        public string PinnedBadgeImageName;
+
+        [CanBeNull]
+        public Badge PinnedBadge => Badges.FirstOrDefault(b => b.Image == PinnedBadgeImageName);
+
         [JsonProperty("user_achievements")]
         public APIUserAchievement[] Achievements;
 

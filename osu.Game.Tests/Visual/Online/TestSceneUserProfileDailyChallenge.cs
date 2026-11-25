@@ -14,7 +14,6 @@ using osu.Game.Overlays.Profile;
 using osu.Game.Overlays.Profile.Header.Components;
 using osu.Game.Rulesets.Osu;
 using osu.Game.Scoring;
-using osuTK;
 
 namespace osu.Game.Tests.Visual.Online
 {
@@ -26,7 +25,7 @@ namespace osu.Game.Tests.Visual.Online
         [Cached]
         private OverlayColourProvider colourProvider = new OverlayColourProvider(OverlayColourScheme.Pink);
 
-        private DailyChallengeStatsDisplay display = null!;
+        private DailyChallengeProfileCard display = null!;
 
         [SetUpSteps]
         public void SetUpSteps()
@@ -39,11 +38,11 @@ namespace osu.Game.Tests.Visual.Online
                     RelativeSizeAxes = Axes.Both,
                     Colour = colourProvider.Background2,
                 });
-                Add(display = new DailyChallengeStatsDisplay
+                Add(display = new DailyChallengeProfileCard
                 {
+                    Width = 0.3f,
                     Anchor = Anchor.Centre,
                     Origin = Anchor.Centre,
-                    Scale = new Vector2(1f),
                     User = { BindTarget = userProfileData },
                 });
             });
